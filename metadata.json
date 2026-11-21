@@ -1,0 +1,6 @@
+{
+  "name": "Dragonfyre Forge Studio",
+  "description": "Minecraft Forge 1.20.1 Mod Studio, live HUD & World Boss Bar designer, universal Mob-to-Boss registry, and Google Apps Script hot-reload server remote for Cisco Medieval RPG and any Forge modpack.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
