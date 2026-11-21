@@ -1,0 +1,89 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = '1.2.0'
+group = 'com.dragonfyre.bridge'
+
+base {
+    archivesName = 'dragonfyre_bridge'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'info'
+            mods {
+                "dragonfyre_bridge" {
+                    source sourceSets.main
+                }
+            }
+        }
+        client {
+            property 'forge.enabledGameTestNamespaces', 'dragonfyre_bridge'
+        }
+        server {
+            property 'forge.enabledGameTestNamespaces', 'dragonfyre_bridge'
+            args '--nogui'
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.2.20'
+    // Gson is included in Minecraft / Forge runtime
+    // Xaero's Minimap & World Map are integrated via Soft-Dependency reflection (no hard jar required)
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version   : '1.20.1',
+            minecraft_version_range: '[1.20.1,1.21)',
+            forge_version       : '47.2.20',
+            forge_version_range : '[47,)',
+            loader_version_range: '[47,)',
+            mod_id              : 'dragonfyre_bridge',
+            mod_name            : 'Dragonfyre World Boss & GAS Bridge',
+            mod_license         : 'MIT',
+            mod_version         : '1.2.0',
+            mod_authors         : 'Dragonfyre Team',
+            mod_description     : 'Universal World Boss, Mob-to-Boss Promoter, Center HUD Announcements, and Google Apps Script Bridge for Cisco Fantasy Medieval RPG & Forge 1.20.1'
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'dragonfyre_bridge',
+                'Specification-Vendor'    : 'Dragonfyre',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : 'Dragonfyre',
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

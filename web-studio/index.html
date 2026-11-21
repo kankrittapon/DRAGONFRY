@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dragonfyre Forge Studio - Web Edition</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🐉</div>
+      <div>
+        <h1>DRAGONFYRE FORGE STUDIO</h1>
+      </div>
+      <span>WEB EDITION (PC)</span>
+    </div>
+    <nav>
+      <button class="tab-btn active" data-tab="boss-tab">🛡️ World Boss Studio</button>
+      <button class="tab-btn" data-tab="hud-tab">📢 Announcement Studio</button>
+      <button class="tab-btn" data-tab="gas-tab">🌐 Google Script Remote</button>
+      <button class="tab-btn" data-tab="code-tab">📦 Code & Mod Exporter</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: WORLD BOSS STUDIO -->
+    <section id="boss-tab" class="tab-content active">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>🛡️ Universal World Boss & Mob-to-Boss Registry</h2>
+          <p>กำหนดค่าม็อบจาก Mod ใดก็ได้ให้กลายเป็น World Boss หรือเกิดตามธรรมชาติพร้อมหลอดเลือด Custom และจุดแดง Xaero</p>
+        </div>
+        <button class="btn" onclick="openBossModal()">➕ เพิ่ม World Boss ใหม่</button>
+      </div>
+
+      <div class="grid" id="boss-grid">
+        <!-- Rendered by app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 2: ANNOUNCEMENT STUDIO -->
+    <section id="hud-tab" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>📢 RPG Center-Screen HUD Announcement Designer</h2>
+          <p>ออกแบบป้ายประกาศกลางจอสำหรับดรอปของ Epic/Mythic (Apotheosis), การฆ่าบอส, หรือประกาศสดจากแอดมิน</p>
+        </div>
+        <button class="btn" onclick="triggerTestAnimation()">▶️ ทดสอบแอนิเมชันกลางจอ</button>
+      </div>
+
+      <div class="hud-preview-box">
+        <div class="rpg-banner" id="preview-banner">
+          <h4 id="preview-headline">⚔ Steve ได้รับไอเทมระดับ MYTHIC: Vorpal Blade</h4>
+          <p id="preview-subtitle">ตรวจพบพลัง Affix หายากใน Cisco Fantasy Medieval RPG</p>
+        </div>
+      </div>
+
+      <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <h3 style="margin-bottom: 16px;">ปรับแต่งป้ายประกาศ (Live Preview)</h3>
+        <div class="form-group">
+          <label>หัวข้อประกาศ (Headline):</label>
+          <input type="text" class="form-control" id="hud-headline" value="⚔ Steve ได้รับไอเทมระดับ MYTHIC: Vorpal Blade" oninput="updateHudPreview()">
+        </div>
+        <div class="form-group">
+          <label>คำอธิบายย่อย (Subtitle):</label>
+          <input type="text" class="form-control" id="hud-subtitle" value="ตรวจพบพลัง Affix หายากใน Cisco Fantasy Medieval RPG" oninput="updateHudPreview()">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>สีขอบและออร่า (Hex Color):</label>
+            <input type="color" class="form-control" id="hud-color" value="#f59e0b" style="height: 42px; cursor: pointer;" oninput="updateHudPreview()">
+          </div>
+          <div class="form-group">
+            <label>เสียงเอฟเฟกต์ (Sound Event):</label>
+            <input type="text" class="form-control" value="minecraft:ui.toast.challenge_complete">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: GAS REMOTE -->
+    <section id="gas-tab" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>🌐 Google Apps Script Remote & Server Hot-Reload</h2>
+          <p>เชื่อมต่อเซิร์ฟเวอร์ Minecraft ผ่าน Google Sheets โดยไม่ต้องเปิดพอร์ตเซิร์ฟเวอร์ ทำงานผ่าน Tailscale ได้ 100%</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="testGasConnection()">⚡ ทดสอบเชื่อมต่อ</button>
+          <button class="btn" onclick="syncToGas()">☁️ ซิงก์ขึ้น Google Sheets</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 24px;">
+        <h3 style="margin-bottom: 14px;">ตั้งค่าการเชื่อมต่อ Google Web App</h3>
+        <div class="form-group">
+          <label>Google Apps Script Web App URL:</label>
+          <input type="text" class="form-control" id="gas-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Secret Token (รหัสผ่านตรวจสอบสิทธิ์):</label>
+            <input type="text" class="form-control" id="gas-secret" value="DF_SECRET_2026">
+          </div>
+          <div class="form-group">
+            <label>ความถี่ในการ Polling ของเซิร์ฟเวอร์ (วินาที):</label>
+            <input type="number" class="form-control" id="gas-interval" value="20">
+          </div>
+        </div>
+        <div id="gas-status" style="font-size: 13px; font-weight: 600; margin-top: 8px;">
+          ⚪ ยังไม่ได้ทดสอบเชื่อมต่อ
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CODE EXPORTER -->
+    <section id="code-tab" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>📦 Forge 1.20.1 Mod & Google Script Source Code</h2>
+          <p>ไฟล์โค้ดต้นฉบับทั้งหมดถูกสร้างไว้ในโฟลเดอร์โปรเจกต์พร้อมคอมไพล์ด้วย `./gradlew build`</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="copyCurrentCode()">📋 คัดลอกโค้ด</button>
+          <button class="btn" onclick="downloadCurrentFile()">💾 ดาวน์โหลดไฟล์นี้</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+        <button class="btn btn-secondary code-file-btn active" data-file="DragonfyreBridgeMod.java" onclick="selectCodeFile('DragonfyreBridgeMod.java')">DragonfyreBridgeMod.java</button>
+        <button class="btn btn-secondary code-file-btn" data-file="UniversalBossManager.java" onclick="selectCodeFile('UniversalBossManager.java')">UniversalBossManager.java</button>
+        <button class="btn btn-secondary code-file-btn" data-file="Code.gs" onclick="selectCodeFile('Code.gs')">Code.gs (Google Script)</button>
+        <button class="btn btn-secondary code-file-btn" data-file="build.gradle" onclick="selectCodeFile('build.gradle')">build.gradle</button>
+        <button class="btn btn-secondary code-file-btn" data-file="mods.toml" onclick="selectCodeFile('mods.toml')">mods.toml</button>
+      </div>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span id="code-filename" style="font-family: monospace; font-size: 13px; color: var(--gold);">DragonfyreBridgeMod.java</span>
+        </div>
+        <pre><code id="code-display">// โค้ดจะแสดงที่นี่</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: ADD/EDIT BOSS -->
+  <div class="modal-overlay" id="boss-modal">
+    <div class="modal">
+      <h3 id="modal-title" style="margin-bottom: 16px;">เพิ่ม World Boss ใหม่</h3>
+      <input type="hidden" id="boss-id" value="0">
+      
+      <div class="form-group">
+        <label>ชื่อบอสที่แสดง (Display Name):</label>
+        <input type="text" class="form-control" id="boss-name" placeholder="Ignis, Lord of Dragonfyre">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Entity ID (Mod ResourceLocation):</label>
+          <input type="text" class="form-control" id="boss-entity" placeholder="cataclysm:ignis">
+        </div>
+        <div class="form-group">
+          <label>ชื่อ Mod หรือหมวดหมู่:</label>
+          <input type="text" class="form-control" id="boss-tag" placeholder="Cisco Dragonfyre">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>โหมดการเกิด (Boss Mode):</label>
+          <select class="form-control" id="boss-mode">
+            <option value="BOTH">BOTH (ทั้งเกิดตามเวลาและเกิดตามธรรมชาติ)</option>
+            <option value="SCHEDULED_WORLD_BOSS">SCHEDULED_WORLD_BOSS (สุ่มเกิดตามเวลา)</option>
+            <option value="AUTO_PROMOTE_NATURAL">AUTO_PROMOTE_NATURAL (อัปเกรดม็อบธรรมชาติ)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>โอกาสโปรโมตธรรมชาติ (%):</label>
+          <input type="number" class="form-control" id="boss-chance" value="100">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>ตัวคูณ HP (Health Multiplier):</label>
+          <input type="number" step="0.1" class="form-control" id="boss-hp" value="3.5">
+        </div>
+        <div class="form-group">
+          <label>ตัวคูณ ATK (Attack Multiplier):</label>
+          <input type="number" step="0.1" class="form-control" id="boss-atk" value="2.0">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>รอบการเกิด (นาที):</label>
+          <input type="number" class="form-control" id="boss-interval" value="60">
+        </div>
+        <div class="form-group">
+          <label>เวลาจำกัดในการสู้ (นาที):</label>
+          <input type="number" class="form-control" id="boss-duration" value="20">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Affix Traits บัฟต่อสู้ (คั่นด้วยจุลภาค):</label>
+        <input type="text" class="form-control" id="boss-affix" value="FIRE_NOVA,ENRAGED" placeholder="FIRE_NOVA, LIFE_STEAL, IRON_SKIN, LIGHTNING_CALLER, SPEED_SURGE, ENRAGED">
+      </div>
+
+      <div class="form-group">
+        <label>คำสั่งมอบรางวัลให้ผู้สังหาร (@p):</label>
+        <input type="text" class="form-control" id="boss-reward" value="give @p minecraft:netherite_ingot 5">
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="boss-enabled" checked style="width: 18px; height: 18px;">
+        <label for="boss-enabled" style="margin: 0; cursor: pointer;">เปิดใช้งานบอสตัวนี้ทันที</label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeBossModal()">ยกเลิก</button>
+        <button class="btn" onclick="saveBossFromModal()">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

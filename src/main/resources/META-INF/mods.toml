@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="dragonfyre_bridge"
+version="1.2.0"
+displayName="Dragonfyre World Boss & GAS Bridge"
+description='''
+Universal Minecraft Forge 1.20.1 Mod สำหรับ Cisco's Fantasy Medieval RPG [Dragonfyre] / [Ultimate] และ Modpack อื่นๆ
+- ระบบป้ายประกาศกลางจอ (Center-Screen RPG HUD) รองรับ Apotheosis Rarity & Multi-Mod Boss Kills
+- ระบบ Universal World Boss & Mob-to-Boss Promoter อัปเกรดม็อบจาก Mod ใดก็ได้เป็นบอส พร้อมหลอดเลือด Custom และจุดแดง Xaero's World Map
+- ระบบเชื่อมต่อ Google Apps Script Auto-Polling จัดการ Server Settings แบบไม่ต้อง Restart
+'''
+
+[[dependencies.dragonfyre_bridge]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.dragonfyre_bridge]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="BOTH"

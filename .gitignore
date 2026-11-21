@@ -1,18 +1,20 @@
+# Gradle files
+.gradle/
+build/
+
+# IDE files
+.idea/
 *.iml
-.gradle
-.kotlin
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+
+# Minecraft runs
+run/
+
+# OS files
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-.env
-debug.keystore
+Thumbs.db
