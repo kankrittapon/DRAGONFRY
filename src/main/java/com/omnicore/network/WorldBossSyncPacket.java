@@ -1,7 +1,7 @@
-package com.dragonfyre.bridge.network;
+package com.omnicore.network;
 
-import com.dragonfyre.bridge.client.CustomBossBarOverlay;
-import com.dragonfyre.bridge.client.XaeroWaypointBridge;
+import com.omnicore.client.CustomBossBarOverlay;
+import com.omnicore.client.XaeroWaypointBridge;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -23,6 +23,7 @@ public record WorldBossSyncPacket(
         String affixCsv,
         String barTheme,
         boolean xaeroRedMarker,
+        boolean nativeBossBar,
         boolean active
 ) {
     public void encode(FriendlyByteBuf buf) {
@@ -39,6 +40,7 @@ public record WorldBossSyncPacket(
         buf.writeUtf(affixCsv, 128);
         buf.writeUtf(barTheme, 32);
         buf.writeBoolean(xaeroRedMarker);
+        buf.writeBoolean(nativeBossBar);
         buf.writeBoolean(active);
     }
 
@@ -56,6 +58,7 @@ public record WorldBossSyncPacket(
                 buf.readInt(),
                 buf.readUtf(128),
                 buf.readUtf(32),
+                buf.readBoolean(),
                 buf.readBoolean(),
                 buf.readBoolean()
         );

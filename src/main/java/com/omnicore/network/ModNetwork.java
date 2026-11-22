@@ -1,4 +1,4 @@
-package com.dragonfyre.bridge.network;
+package com.omnicore.network;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,10 +10,10 @@ import net.minecraftforge.network.simple.SimpleChannel;
 public class ModNetwork {
     private static final String PROTOCOL = "1";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation("dragonfyre_bridge", "main"),
+            new ResourceLocation("omnicore", "main"),
             () -> PROTOCOL,
-            PROTOCOL::equals,
-            PROTOCOL::equals
+            NetworkRegistry.acceptMissingOr(PROTOCOL),
+            NetworkRegistry.acceptMissingOr(PROTOCOL)
     );
 
     private static int packetId = 0;
@@ -29,6 +29,12 @@ public class ModNetwork {
                 .encoder(WorldBossSyncPacket::encode)
                 .decoder(WorldBossSyncPacket::decode)
                 .consumerMainThread(WorldBossSyncPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(TogglePvPPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(TogglePvPPacket::encode)
+                .decoder(TogglePvPPacket::decode)
+                .consumerMainThread(TogglePvPPacket::handle)
                 .add();
     }
 

@@ -19,7 +19,17 @@
     "xaeroRedMarker": true,
     "affixTraits": "FIRE_NOVA,ENRAGED",
     "rewardCommand": "give @p minecraft:netherite_ingot 5",
-    "enabled": true
+    "enabled": true,
+    "spawnStrategy": "ANCHOR_LANDMARK",
+    "anchorX": 0,
+    "anchorY": 0,
+    "anchorZ": 0,
+    "anchorRadius": 80,
+    "antiGriefEnabled": true,
+    "protectRadius": 500,
+    "scheduleHours": "18:00,21:00",
+    "nativeBossBar": true,
+    "raidScaling": true
   },
   {
     "id": 2,
@@ -41,7 +51,17 @@
     "xaeroRedMarker": true,
     "affixTraits": "IRON_SKIN,FIRE_NOVA",
     "rewardCommand": "give @p minecraft:diamond_block 3",
-    "enabled": true
+    "enabled": true,
+    "spawnStrategy": "PLAYER_RELATIVE_500M",
+    "anchorX": 0,
+    "anchorY": 0,
+    "anchorZ": 0,
+    "anchorRadius": 60,
+    "antiGriefEnabled": true,
+    "protectRadius": 500,
+    "scheduleHours": "20:00",
+    "nativeBossBar": true,
+    "raidScaling": true
   },
   {
     "id": 3,
@@ -63,7 +83,17 @@
     "xaeroRedMarker": true,
     "affixTraits": "FIRE_NOVA,LIGHTNING_CALLER",
     "rewardCommand": "give @p minecraft:enchanted_golden_apple 2",
-    "enabled": true
+    "enabled": true,
+    "spawnStrategy": "PLAYER_RELATIVE_500M",
+    "anchorX": 0,
+    "anchorY": 0,
+    "anchorZ": 0,
+    "anchorRadius": 60,
+    "antiGriefEnabled": true,
+    "protectRadius": 500,
+    "scheduleHours": "",
+    "nativeBossBar": true,
+    "raidScaling": true
   },
   {
     "id": 4,
@@ -85,28 +115,16 @@
     "xaeroRedMarker": true,
     "affixTraits": "IRON_SKIN,ENRAGED",
     "rewardCommand": "give @p minecraft:netherite_scrap 4",
-    "enabled": true
-  },
-  {
-    "id": 5,
-    "displayName": "Cursed Zombie Warlord (Promoted)",
-    "entityId": "minecraft:zombie",
-    "modPackTag": "Universal Promoter",
-    "bossMode": "AUTO_PROMOTE_NATURAL",
-    "promotionChancePercent": 3,
-    "hpMultiplier": 15.0,
-    "attackMultiplier": 3.2,
-    "armorBonus": 12.0,
-    "speedMultiplier": 1.3,
-    "spawnIntervalMinutes": 30,
-    "fightDurationMinutes": 12,
-    "minSpawnRadius": 150,
-    "maxSpawnRadius": 900,
-    "dimensionId": "minecraft:overworld",
-    "glowingAura": true,
-    "xaeroRedMarker": true,
-    "affixTraits": "LIFE_STEAL,SPEED_SURGE,IRON_SKIN",
-    "rewardCommand": "xp add @p 500 points",
-    "enabled": true
+    "enabled": true,
+    "spawnStrategy": "DYNAMIC_BIOME",
+    "anchorX": 0,
+    "anchorY": 0,
+    "anchorZ": 0,
+    "anchorRadius": 60,
+    "antiGriefEnabled": true,
+    "protectRadius": 500,
+    "scheduleHours": "",
+    "nativeBossBar": true,
+    "raidScaling": true
   }
 ]

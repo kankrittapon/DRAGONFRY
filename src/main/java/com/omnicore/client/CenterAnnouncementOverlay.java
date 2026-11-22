@@ -1,6 +1,6 @@
-package com.dragonfyre.bridge.client;
+package com.omnicore.client;
 
-import com.dragonfyre.bridge.network.AnnouncementPacket;
+import com.omnicore.network.AnnouncementPacket;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -16,7 +16,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-@Mod.EventBusSubscriber(modid = "dragonfyre_bridge", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = "omnicore", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class CenterAnnouncementOverlay {
     private static final Queue<AnnouncementPacket> QUEUE = new ArrayDeque<>();
     private static AnnouncementPacket current = null;

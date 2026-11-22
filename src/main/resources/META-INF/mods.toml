@@ -3,24 +3,25 @@ loaderVersion="[47,)"
 license="MIT"
 
 [[mods]]
-modId="dragonfyre_bridge"
+modId="omnicore"
 version="1.2.0"
-displayName="Dragonfyre World Boss & GAS Bridge"
+displayName="OmniCore: Universal RPG Engine"
 description='''
-Universal Minecraft Forge 1.20.1 Mod สำหรับ Cisco's Fantasy Medieval RPG [Dragonfyre] / [Ultimate] และ Modpack อื่นๆ
-- ระบบป้ายประกาศกลางจอ (Center-Screen RPG HUD) รองรับ Apotheosis Rarity & Multi-Mod Boss Kills
-- ระบบ Universal World Boss & Mob-to-Boss Promoter อัปเกรดม็อบจาก Mod ใดก็ได้เป็นบอส พร้อมหลอดเลือด Custom และจุดแดง Xaero's World Map
-- ระบบเชื่อมต่อ Google Apps Script Auto-Polling จัดการ Server Settings แบบไม่ต้อง Restart
+Universal Minecraft Forge 1.20.1 RPG Framework (Boss Core, PvP Core, Party Friendly Fire & Server Remote Control)
+- ⚔️ BossCore: Universal World Boss & Mob-to-Boss Promoter, Custom BossBar with Damage Lag Trail, Keep Inventory & In-Arena Respawn
+- 🗡️ PvPCore: Alt + C Keybind Toggle, Head Prefix [§c⚔ [PvP]], Free PK [§4🗡️ [PK]] with 45s cooldown & Action Bar HUD
+- 🛡️ PartyCore: Zero Friendly Fire for FTB Teams, Vanilla Teams, arrows, magic, and minions
+- 🖥️ ControlCore: Web Studio, Google Apps Script Telemetry & Remote Settings Hot-Reload
 '''
 
-[[dependencies.dragonfyre_bridge]]
+[[dependencies.omnicore]]
     modId="forge"
     mandatory=true
     versionRange="[47,)"
     ordering="NONE"
     side="BOTH"
 
-[[dependencies.dragonfyre_bridge]]
+[[dependencies.omnicore]]
     modId="minecraft"
     mandatory=true
     versionRange="[1.20.1,1.21)"

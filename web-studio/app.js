@@ -1,4 +1,4 @@
-// Dragonfyre Forge Studio - Web Edition (Non-Mobile)
+// OmniCore Forge Studio - Web Edition (Universal Non-Mobile)
 const DEFAULT_BOSSES = [
   {
     id: 1,
@@ -20,7 +20,17 @@ const DEFAULT_BOSSES = [
     xaeroRedMarker: true,
     affixTraits: "FIRE_NOVA,ENRAGED",
     rewardCommand: "give @p minecraft:netherite_ingot 5",
-    enabled: true
+    enabled: true,
+    spawnStrategy: "ANCHOR_LANDMARK",
+    anchorX: 0,
+    anchorY: 0,
+    anchorZ: 0,
+    anchorRadius: 80,
+    antiGriefEnabled: true,
+    protectRadius: 500,
+    scheduleHours: "18:00,21:00",
+    nativeBossBar: true,
+    raidScaling: true
   },
   {
     id: 2,
@@ -42,7 +52,17 @@ const DEFAULT_BOSSES = [
     xaeroRedMarker: true,
     affixTraits: "IRON_SKIN,FIRE_NOVA",
     rewardCommand: "give @p minecraft:diamond_block 3",
-    enabled: true
+    enabled: true,
+    spawnStrategy: "PLAYER_RELATIVE_500M",
+    anchorX: 0,
+    anchorY: 0,
+    anchorZ: 0,
+    anchorRadius: 60,
+    antiGriefEnabled: true,
+    protectRadius: 500,
+    scheduleHours: "20:00",
+    nativeBossBar: true,
+    raidScaling: true
   },
   {
     id: 3,
@@ -64,7 +84,17 @@ const DEFAULT_BOSSES = [
     xaeroRedMarker: true,
     affixTraits: "FIRE_NOVA,LIGHTNING_CALLER",
     rewardCommand: "give @p minecraft:enchanted_golden_apple 2",
-    enabled: true
+    enabled: true,
+    spawnStrategy: "DYNAMIC_BIOME",
+    anchorX: 0,
+    anchorY: 0,
+    anchorZ: 0,
+    anchorRadius: 100,
+    antiGriefEnabled: true,
+    protectRadius: 500,
+    scheduleHours: "15:00,22:00",
+    nativeBossBar: true,
+    raidScaling: true
   },
   {
     id: 4,
@@ -86,7 +116,17 @@ const DEFAULT_BOSSES = [
     xaeroRedMarker: true,
     affixTraits: "IRON_SKIN,ENRAGED",
     rewardCommand: "give @p minecraft:netherite_scrap 4",
-    enabled: true
+    enabled: true,
+    spawnStrategy: "ANCHOR_LANDMARK",
+    anchorX: 0,
+    anchorY: 0,
+    anchorZ: 0,
+    anchorRadius: 60,
+    antiGriefEnabled: true,
+    protectRadius: 500,
+    scheduleHours: "",
+    nativeBossBar: true,
+    raidScaling: true
   },
   {
     id: 5,
@@ -108,7 +148,17 @@ const DEFAULT_BOSSES = [
     xaeroRedMarker: true,
     affixTraits: "LIFE_STEAL,SPEED_SURGE,IRON_SKIN",
     rewardCommand: "xp add @p 500 points",
-    enabled: true
+    enabled: true,
+    spawnStrategy: "PLAYER_RELATIVE_500M",
+    anchorX: 0,
+    anchorY: 0,
+    anchorZ: 0,
+    anchorRadius: 50,
+    antiGriefEnabled: false,
+    protectRadius: 0,
+    scheduleHours: "",
+    nativeBossBar: false,
+    raidScaling: false
   }
 ];
 
@@ -181,9 +231,9 @@ const DEFAULT_RULES = [
 ];
 
 const DEFAULT_CONFIG = {
-  modId: "dragonfyre_bridge",
-  modName: "Dragonfyre World Boss & GAS Bridge",
-  packageName: "com.dragonfyre.bridge",
+  modId: "omnicore",
+  modName: "OmniCore: Universal RPG Engine",
+  packageName: "com.omnicore",
   modVersion: "1.2.0",
   bossBarTheme: "DRAGON_GOLD",
   gasWebAppUrl: "",
@@ -250,24 +300,28 @@ function renderBossCards() {
           <span class="stat-value" style="color: var(--gold)">x${b.attackMultiplier}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">โหมดการเกิด</span>
-          <span class="stat-value">${b.bossMode}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">โอกาสโปรโมต</span>
-          <span class="stat-value">${b.promotionChancePercent}%</span>
+          <span class="stat-label">โหมด / จุดเกิด</span>
+          <span class="stat-value">${b.spawnStrategy === 'ANCHOR_LANDMARK' ? '📍 Anchor (' + (b.anchorX||0) + ',' + (b.anchorY||0) + ',' + (b.anchorZ||0) + ')' : (b.spawnStrategy === 'PLAYER_RELATIVE_500M' ? '🏃 ห่างผู้เล่น 500m' : b.bossMode)}</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">รอบเกิด / เวลาสู้</span>
-          <span class="stat-value">${b.spawnIntervalMinutes}m / ${b.fightDurationMinutes}m</span>
+          <span class="stat-value">${b.scheduleHours ? b.scheduleHours : b.spawnIntervalMinutes + 'm'} / ${b.fightDurationMinutes}m</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">ระบบความปลอดภัย</span>
+          <span class="stat-value" style="font-size: 11px;">
+            ${b.antiGriefEnabled ? '🛡️ บาเรีย ' + (b.protectRadius||500) + 'm' : '❌ ไม่มีบาเรีย'}
+            ${b.raidScaling ? ' • 👥 Raid Scaling' : ''}
+          </span>
         </div>
         <div class="stat-item">
           <span class="stat-label">บัฟต่อสู้ (Affixes)</span>
           <span class="stat-value" style="color: var(--purple)">${escapeHtml(b.affixTraits || 'NONE')}</span>
         </div>
       </div>
-      <div class="card-actions">
+      <div class="card-actions" style="flex-wrap: wrap; gap: 6px;">
         <button class="btn btn-secondary" style="flex: 1;" onclick="editBoss(${b.id})">✏️ แก้ไข</button>
+        <button class="btn btn-secondary" style="padding: 6px 10px;" title="เสกห่างผู้เล่น 500m" onclick="sendSpawnNear(${b.id})">🏃 เสก</button>
         <button class="btn btn-danger" onclick="deleteBoss(${b.id})">🗑️ ลบ</button>
       </div>
     </div>
@@ -290,6 +344,16 @@ function openBossModal(boss = null) {
   document.getElementById("boss-duration").value = isEdit ? boss.fightDurationMinutes : 20;
   document.getElementById("boss-affix").value = isEdit ? boss.affixTraits : "FIRE_NOVA,ENRAGED";
   document.getElementById("boss-reward").value = isEdit ? boss.rewardCommand : "give @p minecraft:netherite_ingot 3";
+  document.getElementById("boss-strategy").value = isEdit ? (boss.spawnStrategy || "ANCHOR_LANDMARK") : "ANCHOR_LANDMARK";
+  document.getElementById("boss-schedule-hours").value = isEdit ? (boss.scheduleHours || "") : "";
+  document.getElementById("boss-anchor-x").value = isEdit ? (boss.anchorX || 0) : 0;
+  document.getElementById("boss-anchor-y").value = isEdit ? (boss.anchorY || 0) : 0;
+  document.getElementById("boss-anchor-z").value = isEdit ? (boss.anchorZ || 0) : 0;
+  document.getElementById("boss-anchor-rad").value = isEdit ? (boss.anchorRadius || 80) : 80;
+  document.getElementById("boss-protect-radius").value = isEdit ? (boss.protectRadius !== undefined ? boss.protectRadius : 500) : 500;
+  document.getElementById("boss-antigrief").checked = isEdit ? (boss.antiGriefEnabled !== false) : true;
+  document.getElementById("boss-native-bar").checked = isEdit ? (boss.nativeBossBar !== false) : true;
+  document.getElementById("boss-raid-scaling").checked = isEdit ? (boss.raidScaling !== false) : true;
   document.getElementById("boss-enabled").checked = isEdit ? boss.enabled : true;
   document.getElementById("boss-modal").classList.add("active");
 }
@@ -320,7 +384,17 @@ function saveBossFromModal() {
     xaeroRedMarker: true,
     affixTraits: document.getElementById("boss-affix").value.trim() || "ENRAGED",
     rewardCommand: document.getElementById("boss-reward").value.trim(),
-    enabled: document.getElementById("boss-enabled").checked
+    enabled: document.getElementById("boss-enabled").checked,
+    spawnStrategy: document.getElementById("boss-strategy").value,
+    scheduleHours: document.getElementById("boss-schedule-hours").value.trim(),
+    anchorX: parseInt(document.getElementById("boss-anchor-x").value) || 0,
+    anchorY: parseInt(document.getElementById("boss-anchor-y").value) || 0,
+    anchorZ: parseInt(document.getElementById("boss-anchor-z").value) || 0,
+    anchorRadius: parseInt(document.getElementById("boss-anchor-rad").value) || 80,
+    protectRadius: parseInt(document.getElementById("boss-protect-radius").value) || 500,
+    antiGriefEnabled: document.getElementById("boss-antigrief").checked,
+    nativeBossBar: document.getElementById("boss-native-bar").checked,
+    raidScaling: document.getElementById("boss-raid-scaling").checked
   };
 
   const existingIdx = state.bosses.findIndex(b => b.id === id);
@@ -441,14 +515,14 @@ async function syncToGas() {
 
 // Code Exporter
 const CODE_FILES = {
-  "DragonfyreBridgeMod.java": () => generateModMainJava(),
+  "OmniCoreMod.java": () => generateModMainJava(),
   "UniversalBossManager.java": () => generateBossManagerJava(),
   "Code.gs": () => generateCodeGs(),
   "build.gradle": () => generateBuildGradle(),
   "mods.toml": () => generateModsToml()
 };
 
-let currentCodeFile = "DragonfyreBridgeMod.java";
+let currentCodeFile = "OmniCoreMod.java";
 
 function renderCodePreview() {
   const viewer = document.getElementById("code-display");
@@ -510,13 +584,13 @@ const SHEET_LOGS = "EventLog";
 }
 
 function generateModMainJava() {
-  return `package com.dragonfyre.bridge;
-// (ดูโค้ดเต็มที่ src/main/java/com/dragonfyre/bridge/DragonfyreBridgeMod.java)`;
+  return `package com.omnicore;
+// (ดูโค้ดเต็มที่ src/main/java/com/omnicore/OmniCoreMod.java)`;
 }
 
 function generateBossManagerJava() {
-  return `package com.dragonfyre.bridge.server;
-// (ดูโค้ดเต็มที่ src/main/java/com/dragonfyre/bridge/server/UniversalBossManager.java)`;
+  return `package com.omnicore.server;
+// (ดูโค้ดเต็มที่ src/main/java/com/omnicore/server/UniversalBossManager.java)`;
 }
 
 function generateBuildGradle() {
@@ -527,7 +601,7 @@ function generateBuildGradle() {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 version = '1.2.0'
-group = 'com.dragonfyre.bridge'
+group = 'com.omnicore'
 // (ดูโค้ดเต็มที่ build.gradle)`;
 }
 
@@ -536,7 +610,93 @@ function generateModsToml() {
 loaderVersion="[47,)"
 license="MIT"
 [[mods]]
-modId="dragonfyre_bridge"
+modId="omnicore"
 version="1.2.0"
-displayName="Dragonfyre World Boss & GAS Bridge"`;
+displayName="OmniCore: Universal RPG Engine"`;
 }
+
+// Embedded Server Integration
+let isEmbedded = false;
+
+async function checkEmbeddedServer() {
+  try {
+    const res = await fetch("/api/status");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        isEmbedded = true;
+        const badge = document.getElementById("server-badge");
+        if (badge) {
+          badge.innerText = `🟢 IN-GAME SERVER (PORT: ${data.port || 8088} • ผู้เล่น: ${data.playerCount || 0})`;
+          badge.style.color = "var(--green)";
+        }
+        loadFromEmbeddedServer();
+      }
+    }
+  } catch (ignored) {}
+}
+
+async function loadFromEmbeddedServer() {
+  try {
+    const res = await fetch("/api/bosses");
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list) && list.length > 0) {
+        state.bosses = list;
+        renderBossCards();
+      }
+    }
+  } catch (ignored) {}
+}
+
+async function syncToEmbeddedGame() {
+  const btn = document.getElementById("btn-sync-game");
+  if (btn) btn.innerText = "⏳ กำลังซิงก์ลงเกม...";
+  try {
+    const token = state.config.gasSecretToken || "DF_SECRET_2026";
+    const res = await fetch("/api/bosses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ token: token, bosses: state.bosses })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert("✅ " + (data.message || "ซิงก์และ Hot-Reload ในเกมสำเร็จ!"));
+    } else {
+      alert("❌ ซิงก์ไม่สำเร็จ: " + (data.error || "Unknown error"));
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถเชื่อมต่อ Embedded Web Server: " + e.message);
+  } finally {
+    if (btn) btn.innerText = "⚡ ซิงก์ลงเกมสด (In-Game Hot-Reload)";
+  }
+}
+
+async function sendSpawnNear(id) {
+  const token = state.config.gasSecretToken || "DF_SECRET_2026";
+  try {
+    const res = await fetch("/api/command", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ token: token, command: "/dfboss spawnnear " + id })
+    });
+    const data = await res.json();
+    if (data.ok) alert("✅ ส่งคำสั่งเสกบอสใกล้ผู้เล่น 500m เรียบร้อย!");
+    else alert("❌ เกิดข้อผิดพลาด: " + data.error);
+  } catch (e) {
+    alert("❌ ไม่สามารถส่งคำสั่งได้: " + e.message);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  renderBossCards();
+  renderRulesTable();
+  updateHudPreview();
+  checkEmbeddedServer();
+});

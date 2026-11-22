@@ -1,4 +1,4 @@
-package com.dragonfyre.bridge.server;
+package com.omnicore.server;
 
 import com.google.gson.*;
 import net.minecraft.server.MinecraftServer;
@@ -36,11 +36,19 @@ public class GasHotReloadManager {
 
     public void start(MinecraftServer server) {
         stop();
+        try {
+            if (com.omnicore.config.OmniConfig.INSTANCE.gasEnabled.get()) {
+                this.gasWebAppUrl = com.omnicore.config.OmniConfig.INSTANCE.gasWebAppUrl.get();
+                this.secretToken = com.omnicore.config.OmniConfig.INSTANCE.gasSecretToken.get();
+                this.pollIntervalSeconds = com.omnicore.config.OmniConfig.INSTANCE.gasPollIntervalSeconds.get();
+            }
+        } catch (Exception ignored) {}
+
         if (gasWebAppUrl == null || gasWebAppUrl.isBlank() || gasWebAppUrl.contains("REPLACE_WITH_YOUR_DEPLOY_ID")) {
             return;
         }
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "Dragonfyre-GAS-Poller");
+            Thread t = new Thread(r, "OmniCore-GAS-Poller");
             t.setDaemon(true);
             return t;
         });
@@ -154,7 +162,17 @@ public class GasHotReloadManager {
                     bool(o, "xaeroRedMarker", true),
                     str(o, "affixTraits", "ENRAGED"),
                     str(o, "rewardCommand", ""),
-                    bool(o, "enabled", true)
+                    bool(o, "enabled", true),
+                    str(o, "spawnStrategy", "DYNAMIC_BIOME"),
+                    numInt(o, "anchorX", 0),
+                    numInt(o, "anchorY", 0),
+                    numInt(o, "anchorZ", 0),
+                    numInt(o, "anchorRadius", 80),
+                    bool(o, "antiGriefEnabled", true),
+                    numInt(o, "protectRadius", 500),
+                    str(o, "scheduleHours", ""),
+                    bool(o, "nativeBossBar", true),
+                    bool(o, "raidScaling", true)
             ));
         }
         UniversalBossManager.INSTANCE.replaceRegistryFromGas(list);

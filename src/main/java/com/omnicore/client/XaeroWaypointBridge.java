@@ -1,4 +1,4 @@
-package com.dragonfyre.bridge.client;
+package com.omnicore.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;

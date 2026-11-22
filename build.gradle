@@ -6,10 +6,10 @@ plugins {
 }
 
 version = '1.2.0'
-group = 'com.dragonfyre.bridge'
+group = 'com.omnicore'
 
 base {
-    archivesName = 'dragonfyre_bridge'
+    archivesName = 'omnicore'
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -25,16 +25,16 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'info'
             mods {
-                "dragonfyre_bridge" {
+                "omnicore" {
                     source sourceSets.main
                 }
             }
         }
         client {
-            property 'forge.enabledGameTestNamespaces', 'dragonfyre_bridge'
+            property 'forge.enabledGameTestNamespaces', 'omnicore'
         }
         server {
-            property 'forge.enabledGameTestNamespaces', 'dragonfyre_bridge'
+            property 'forge.enabledGameTestNamespaces', 'omnicore'
             args '--nogui'
         }
     }
@@ -55,12 +55,12 @@ tasks.named('processResources', ProcessResources).configure {
             forge_version       : '47.2.20',
             forge_version_range : '[47,)',
             loader_version_range: '[47,)',
-            mod_id              : 'dragonfyre_bridge',
-            mod_name            : 'Dragonfyre World Boss & GAS Bridge',
+            mod_id              : 'omnicore',
+            mod_name            : 'OmniCore: Universal RPG Engine',
             mod_license         : 'MIT',
             mod_version         : '1.2.0',
-            mod_authors         : 'Dragonfyre Team',
-            mod_description     : 'Universal World Boss, Mob-to-Boss Promoter, Center HUD Announcements, and Google Apps Script Bridge for Cisco Fantasy Medieval RPG & Forge 1.20.1'
+            mod_authors         : 'OmniCore Team',
+            mod_description     : 'Universal RPG & Server Control Engine (Boss Core, PvP Core, Party Friendly Fire & Remote Control)'
     ]
     inputs.properties replaceProperties
 
@@ -72,12 +72,12 @@ tasks.named('processResources', ProcessResources).configure {
 tasks.named('jar', Jar).configure {
     manifest {
         attributes([
-                'Specification-Title'     : 'dragonfyre_bridge',
-                'Specification-Vendor'    : 'Dragonfyre',
+                'Specification-Title'     : 'omnicore',
+                'Specification-Vendor'    : 'OmniCore',
                 'Specification-Version'   : '1',
                 'Implementation-Title'    : project.name,
                 'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : 'Dragonfyre',
+                'Implementation-Vendor'   : 'OmniCore',
                 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }

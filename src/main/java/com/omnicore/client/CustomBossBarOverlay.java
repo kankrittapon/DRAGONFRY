@@ -1,6 +1,6 @@
-package com.dragonfyre.bridge.client;
+package com.omnicore.client;
 
-import com.dragonfyre.bridge.network.WorldBossSyncPacket;
+import com.omnicore.network.WorldBossSyncPacket;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -34,6 +34,10 @@ public class CustomBossBarOverlay {
         int yOffset = 10;
 
         for (WorldBossSyncPacket boss : ACTIVE_BOSSES.values()) {
+            // หากบอสตัวนี้มี Boss Bar ดั้งเดิมของ Mod อยู่แล้ว (nativeBossBar = true)
+            // จะข้ามการวาดหลอดเลือด Custom ทันที เพื่อไม่ให้เกิดหลอดเลือดซ้ำซ้อน 2 ชั้น
+            if (boss.nativeBossBar()) continue;
+
             float targetRatio = Math.max(0f, Math.min(1f, boss.currentHp() / Math.max(1f, boss.maxHp())));
             float prevLag = LAG_HP_RATIO.getOrDefault(boss.bossUuid(), targetRatio);
             float nextLag = prevLag > targetRatio ? Math.max(targetRatio, prevLag - 0.008f) : targetRatio;

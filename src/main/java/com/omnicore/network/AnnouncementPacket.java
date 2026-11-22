@@ -1,6 +1,6 @@
-package com.dragonfyre.bridge.network;
+package com.omnicore.network;
 
-import com.dragonfyre.bridge.client.CenterAnnouncementOverlay;
+import com.omnicore.client.CenterAnnouncementOverlay;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
