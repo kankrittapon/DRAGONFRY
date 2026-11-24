@@ -271,7 +271,6 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.add("active");
     const target = document.getElementById(btn.dataset.tab);
     if (target) target.classList.add("active");
-    if (btn.dataset.tab === "code-tab") renderCodePreview();
   });
 });
 
@@ -513,106 +512,8 @@ async function syncToGas() {
   }
 }
 
-// Code Exporter
-const CODE_FILES = {
-  "OmniCoreMod.java": () => generateModMainJava(),
-  "UniversalBossManager.java": () => generateBossManagerJava(),
-  "Code.gs": () => generateCodeGs(),
-  "build.gradle": () => generateBuildGradle(),
-  "mods.toml": () => generateModsToml()
-};
-
-let currentCodeFile = "OmniCoreMod.java";
-
-function renderCodePreview() {
-  const viewer = document.getElementById("code-display");
-  const filename = document.getElementById("code-filename");
-  if (!viewer) return;
-  filename.innerText = currentCodeFile;
-  const gen = CODE_FILES[currentCodeFile];
-  viewer.innerText = gen ? gen() : "// File not found";
-}
-
-function selectCodeFile(name) {
-  currentCodeFile = name;
-  document.querySelectorAll(".code-file-btn").forEach(b => {
-    b.classList.toggle("active", b.dataset.file === name);
-  });
-  renderCodePreview();
-}
-
-function copyCurrentCode() {
-  const code = document.getElementById("code-display").innerText;
-  navigator.clipboard.writeText(code).then(() => {
-    alert("คัดลอกโค้ดลงคลิปบอร์ดแล้ว!");
-  });
-}
-
-function downloadCurrentFile() {
-  const code = document.getElementById("code-display").innerText;
-  const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = currentCodeFile;
-  a.click();
-}
-
 function escapeHtml(str) {
   return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-// Init
-window.addEventListener("DOMContentLoaded", () => {
-  renderBossCards();
-  document.getElementById("gas-url").value = state.config.gasWebAppUrl || "";
-  document.getElementById("gas-secret").value = state.config.gasSecretToken || "DF_SECRET_2026";
-  updateHudPreview();
-});
-
-// Code Generator helpers
-function generateCodeGs() {
-  return `/**
- * Dragonfyre Forge 1.20.1 <-> Google Apps Script Bridge (Code.gs)
- */
-const SECRET_TOKEN = "${state.config.gasSecretToken}";
-const SHEET_CONFIG = "Config";
-const SHEET_BOSSES = "BossRegistry";
-const SHEET_RULES = "AnnouncementRules";
-const SHEET_QUEUE = "CommandQueue";
-const SHEET_LOGS = "EventLog";
-// (ดูโค้ดเต็มที่ google_apps_script/Code.gs)`;
-}
-
-function generateModMainJava() {
-  return `package com.omnicore;
-// (ดูโค้ดเต็มที่ src/main/java/com/omnicore/OmniCoreMod.java)`;
-}
-
-function generateBossManagerJava() {
-  return `package com.omnicore.server;
-// (ดูโค้ดเต็มที่ src/main/java/com/omnicore/server/UniversalBossManager.java)`;
-}
-
-function generateBuildGradle() {
-  return `plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-}
-version = '1.2.0'
-group = 'com.omnicore'
-// (ดูโค้ดเต็มที่ build.gradle)`;
-}
-
-function generateModsToml() {
-  return `modLoader="javafml"
-loaderVersion="[47,)"
-license="MIT"
-[[mods]]
-modId="omnicore"
-version="1.2.0"
-displayName="OmniCore: Universal RPG Engine"`;
 }
 
 // Embedded Server Integration

@@ -20,7 +20,6 @@
       <button class="tab-btn active" data-tab="boss-tab">🛡️ World Boss Studio</button>
       <button class="tab-btn" data-tab="hud-tab">📢 Announcement Studio</button>
       <button class="tab-btn" data-tab="gas-tab">🌐 Google Script Remote</button>
-      <button class="tab-btn" data-tab="code-tab">📦 Code & Mod Exporter</button>
     </nav>
   </header>
 
@@ -115,35 +114,6 @@
         <div id="gas-status" style="font-size: 13px; font-weight: 600; margin-top: 8px;">
           ⚪ ยังไม่ได้ทดสอบเชื่อมต่อ
         </div>
-      </div>
-    </section>
-
-    <!-- TAB 4: CODE EXPORTER -->
-    <section id="code-tab" class="tab-content">
-      <div class="section-header">
-        <div class="section-title">
-          <h2>📦 Forge 1.20.1 Mod & Google Script Source Code</h2>
-          <p>ไฟล์โค้ดต้นฉบับทั้งหมดถูกสร้างไว้ในโฟลเดอร์โปรเจกต์พร้อมคอมไพล์ด้วย `./gradlew build`</p>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary" onclick="copyCurrentCode()">📋 คัดลอกโค้ด</button>
-          <button class="btn" onclick="downloadCurrentFile()">💾 ดาวน์โหลดไฟล์นี้</button>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-        <button class="btn btn-secondary code-file-btn active" data-file="OmniCoreMod.java" onclick="selectCodeFile('OmniCoreMod.java')">OmniCoreMod.java</button>
-        <button class="btn btn-secondary code-file-btn" data-file="UniversalBossManager.java" onclick="selectCodeFile('UniversalBossManager.java')">UniversalBossManager.java</button>
-        <button class="btn btn-secondary code-file-btn" data-file="Code.gs" onclick="selectCodeFile('Code.gs')">Code.gs (Google Script)</button>
-        <button class="btn btn-secondary code-file-btn" data-file="build.gradle" onclick="selectCodeFile('build.gradle')">build.gradle</button>
-        <button class="btn btn-secondary code-file-btn" data-file="mods.toml" onclick="selectCodeFile('mods.toml')">mods.toml</button>
-      </div>
-
-      <div class="code-container">
-        <div class="code-header">
-          <span id="code-filename" style="font-family: monospace; font-size: 13px; color: var(--gold);">OmniCoreMod.java</span>
-        </div>
-        <pre><code id="code-display">// โค้ดจะแสดงที่นี่</code></pre>
       </div>
     </section>
   </main>
