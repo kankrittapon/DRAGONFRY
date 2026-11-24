@@ -53,6 +53,7 @@ public class OmniCoreMod {
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, OmniConfig.SPEC, "omnicore-common.toml");
         ModNetwork.register();
+        com.omnicore.server.CuriosBridge.init();
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(UniversalBossManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(AnnouncementTriggerHandler.INSTANCE);

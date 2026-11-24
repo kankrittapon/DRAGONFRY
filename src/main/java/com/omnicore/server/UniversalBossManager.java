@@ -42,6 +42,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.TickEvent;
@@ -53,6 +54,7 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -221,10 +223,15 @@ public class UniversalBossManager {
     // Keep Inventory & Arena Respawn Cache
     private final Map<UUID, BlockPos> arenaDeathRespawns = new ConcurrentHashMap<>();
     private final Map<UUID, List<ItemStack>> savedInventories = new ConcurrentHashMap<>();
+    private final Map<UUID, CompoundTag> savedCuriosInventories = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> savedXp = new ConcurrentHashMap<>();
     private final Set<UUID> playersInArena = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Random random = new Random();
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("OmniCoreBosses");
+
+    public boolean hasSavedInventory(UUID uuid) {
+        return savedInventories.containsKey(uuid) || savedCuriosInventories.containsKey(uuid);
+    }
 
     // Hot-Reloadable Live Settings
     public volatile boolean worldBossSystemEnabled = true;
@@ -689,16 +696,16 @@ public class UniversalBossManager {
     /* ------------------------------------------------------------------ */
     /* ⚔️ ระบบคุ้มครองผู้เล่นในสนามประลอง (Keep Inventory & In-Arena Respawn) */
     /* ------------------------------------------------------------------ */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlayerDrops(LivingDropsEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            if (isInsideActiveArena(player.serverLevel().dimension(), player.blockPosition())) {
+            if (hasSavedInventory(player.getUUID()) || isInsideActiveArena(player.serverLevel().dimension(), player.blockPosition())) {
                 event.setCanceled(true); // ของไม่ตกในเขต World Boss!
             }
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onPlayerClone(PlayerEvent.Clone event) {
         if (event.isWasDeath()) {
             ServerPlayer original = (ServerPlayer) event.getOriginal();
@@ -713,12 +720,25 @@ public class UniversalBossManager {
             if (xp != null) {
                 newPlayer.giveExperiencePoints(xp);
             }
+
+            // กู้คืน Curios (เครื่องประดับ/ของสวมใส่ทั้งหมด)
+            CompoundTag curiosTag = savedCuriosInventories.get(original.getUUID());
+            if (curiosTag != null) {
+                CuriosBridge.restoreCurios(newPlayer, curiosTag);
+            }
         }
     }
 
     @SubscribeEvent
     public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            // กู้คืนซ้ำและ Sync Curios ไปยัง Client ให้แสดงผลทันทีหลัง Respawn
+            CompoundTag curiosTag = savedCuriosInventories.remove(player.getUUID());
+            if (curiosTag != null) {
+                CuriosBridge.restoreCurios(player, curiosTag);
+                CuriosBridge.syncCurios(player);
+            }
+
             BlockPos safePos = arenaDeathRespawns.remove(player.getUUID());
             if (safePos != null) {
                 ArenaZone az = getActiveArena(player.serverLevel().dimension(), safePos);
@@ -727,7 +747,7 @@ public class UniversalBossManager {
                     int y = sl.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, safePos.getX(), safePos.getZ());
                     player.teleportTo(sl, safePos.getX() + 0.5, Math.max(safePos.getY(), y) + 1.0, safePos.getZ() + 0.5, player.getYRot(), 0f);
                     player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 100, 4)); // อมตะ 5 วินาที
-                    player.displayClientMessage(Component.literal("§a⚔️ ฟื้นคืนชีพที่ขอบสนามประลอง World Boss แล้ว! (ของและเลเวลอยู่ครบ เตียงเดิมไม่ถูกแทนที่)"), false);
+                    player.displayClientMessage(Component.literal("§a⚔️ ฟื้นคืนชีพที่ขอบสนามประลอง World Boss แล้ว! (ของ, Curios และเลเวลอยู่ครบ เตียงเดิมไม่ถูกแทนที่)"), false);
                 }
             }
         }
@@ -1180,6 +1200,12 @@ public class UniversalBossManager {
                 }
                 savedInventories.put(player.getUUID(), inv);
                 savedXp.put(player.getUUID(), player.totalExperience);
+
+                // บันทึก Curios Inventory (เครื่องประดับและไอเทมในช่อง Curios ทั้งหมด)
+                CompoundTag curiosTag = CuriosBridge.saveCurios(player);
+                if (curiosTag != null) {
+                    savedCuriosInventories.put(player.getUUID(), curiosTag);
+                }
 
                 BlockPos bCenter = az.center;
                 double angle = Math.atan2(player.getZ() - bCenter.getZ(), player.getX() - bCenter.getX());
