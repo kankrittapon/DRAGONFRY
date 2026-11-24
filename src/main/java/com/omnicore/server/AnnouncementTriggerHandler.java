@@ -1,10 +1,14 @@
 package com.omnicore.server;
 
 import com.omnicore.OmniCoreMod;
+import com.omnicore.config.OmniConfig;
 import com.omnicore.network.AnnouncementPacket;
 import com.omnicore.network.ModNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
@@ -13,38 +17,54 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Rarity;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * ระบบตรวจจับเหตุการณ์สำหรับป้ายประกาศกลางจอ:
- * - ตรวจจับไอเทมระดับ Epic/Mythic/Ancient จาก Apotheosis (Cisco Dragonfyre/Ultimate) และ Vanilla Rarity
- * - ตรวจจับการสังหารบอส/ม็อบพิเศษข้าม Mod ด้วย wildcard filter
- * - มีระบบ Cooldown & Dedup ป้องกันสแปมประกาศซ้ำตอนโยนของเก็บใหม่
+ * ระบบตรวจจับเหตุการณ์สำหรับป้ายประกาศกลางจอ (OmniCore Announcement & Loot Engine):
+ * 1. Apotheosis Top-Tier Loot:
+ *    - ลำดับความหายาก: Common -> Uncommon -> Rare -> Epic -> Mythic -> Ancient
+ *    - ประกาศกลางจอ "เฉพาะ 2 ลำดับบนสุดเท่านั้น" (MYTHIC และ ANCIENT / รวม HEIRLOOM, ESOTERIC)
+ *    - ลำดับทั่วไป (Common, Uncommon, Rare, Epic) และ Vanilla Item จะไม่ประกาศเด็ดขาด
+ * 2. Artifact & Relic Discovery:
+ *    - เมื่อผู้เล่นค้นพบ Artifact ชิ้นใหม่เป็นครั้งแรก -> ประกาศกลางจอ
+ *    - ชิ้นซ้ำกันที่ได้เป็นครั้งที่สอง -> จะไม่ประกาศ (บันทึกใน Player Persistent Data)
+ * 3. Boss / Special Mob Kills:
+ *    - ตรวจจับการสังหารบอส/ม็อบพิเศษข้าม Mod ตาม Wildcard Filter
  */
 public class AnnouncementTriggerHandler {
     public static final AnnouncementTriggerHandler INSTANCE = new AnnouncementTriggerHandler();
-    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("DragonfyreAnnouncement");
-    private static final String NBT_ANNOUNCED = "df_loot_announced";
+    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("OmniCoreAnnounce");
+    public static final String NBT_ANNOUNCED = "omnicore_loot_announced";
+    public static final String NBT_PLAYER_DATA = "OmniCoreData";
+    public static final String NBT_DISCOVERED_ARTIFACTS = "discovered_artifacts";
 
     public volatile boolean announcementsEnabled = true;
-    public volatile String minLootRarity = "EPIC";
-    public volatile String lootFilterCsv = "apotheosis:epic,apotheosis:mythic,apotheosis:ancient,EPIC";
-    public volatile String mobKillFilterCsv = "cataclysm:*,iceandfire:*_dragon,twilightforest:*,mowziesmobs:*";
+    public volatile String minLootRarity = "MYTHIC";
 
     private final Map<String, Long> cooldowns = new ConcurrentHashMap<>();
 
+    public boolean isAnnouncementsEnabled() {
+        if (!announcementsEnabled) return false;
+        try {
+            if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.announcementsEnabled != null) {
+                return OmniConfig.INSTANCE.announcementsEnabled.get();
+            }
+        } catch (Exception ignored) {}
+        return true;
+    }
+
     public static void broadcastCustom(String headline, String subtitle, int colorRgb, String anim, String soundId, int durationTicks) {
-        if (!INSTANCE.announcementsEnabled) return;
+        if (!INSTANCE.isAnnouncementsEnabled()) return;
 
-        LOGGER.info("[OmniCore] " + headline + (subtitle != null && !subtitle.isBlank() ? " | " + subtitle : ""));
+        LOGGER.info("[OmniCore Announcement] " + headline + (subtitle != null && !subtitle.isBlank() ? " | " + subtitle : ""));
 
-        // 1. Send mod packet (for clients with mod installed)
+        // 1. Send mod packet (for clients with OmniCore installed -> RPG Banner Overlay)
         try {
             ModNetwork.sendToAll(new AnnouncementPacket(headline, subtitle, colorRgb, anim, soundId, durationTicks));
         } catch (Exception ignored) {}
@@ -62,7 +82,7 @@ public class AnnouncementTriggerHandler {
                     if (subtitle != null && !subtitle.isBlank()) {
                         player.connection.send(new ClientboundSetSubtitleTextPacket(subComp));
                     }
-                    player.sendSystemMessage(Component.literal("§e[World Boss] §f" + headline + (subtitle != null && !subtitle.isBlank() ? " §7(" + subtitle + ")" : "")));
+                    player.sendSystemMessage(Component.literal("§e[OmniCore] §f" + headline + (subtitle != null && !subtitle.isBlank() ? " §7(" + subtitle + ")" : "")));
                 } catch (Exception ignored) {}
             }
         }
@@ -94,17 +114,87 @@ public class AnnouncementTriggerHandler {
 
     @SubscribeEvent
     public void onItemPickup(EntityItemPickupEvent event) {
-        if (!announcementsEnabled || event.getEntity().level().isClientSide()) return;
+        if (!isAnnouncementsEnabled() || event.getEntity().level().isClientSide()) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
 
         ItemStack stack = event.getItem().getItem();
         if (stack.isEmpty()) return;
+
+        // 1. Tag-level deduplication: หากไอเทมชิ้นนี้เคยประกาศไปแล้ว (เช่น โยนแล้วเก็บใหม่) จะไม่ประกาศซ้ำเด็ดขาด
         CompoundTag tag = stack.getOrCreateTag();
         if (tag.getBoolean(NBT_ANNOUNCED)) return;
 
-        String detectedRarity = detectApotheosisOrVanillaRarity(stack);
-        if (detectedRarity == null) return;
+        // 2. ตรวจสอบว่าเป็น Artifact หรือ Relic หรือไม่ (ตรวจเช็คชิ้นซ้ำระดับ Player Persistent)
+        if (isArtifactItem(stack)) {
+            handleArtifactPickup(player, stack, tag);
+            return;
+        }
 
+        // 3. ตรวจสอบว่าเป็นไอเทมระดับ Top-Tier ของ Apotheosis หรือไม่ (เฉพาะ 2 ลำดับบนสุด: MYTHIC, ANCIENT)
+        String apoRarity = detectApotheosisRarity(stack);
+        if (apoRarity != null && isTopTierApotheosisRarity(apoRarity)) {
+            handleApotheosisPickup(player, stack, tag, apoRarity);
+        }
+        // หมายเหตุ: ไอเทมระดับ Common, Uncommon, Rare, Epic หรือไอเทม Vanilla ทั่วไปจะไม่ประกาศกลางจอเด็ดขาด
+    }
+
+    /**
+     * จัดการการเก็บไอเทม Artifact:
+     * - ได้ครั้งแรก -> ประกาศกลางจอ
+     * - ชิ้นซ้ำกันที่ได้ครั้งที่สอง -> จะไม่ประกาศเด็ดขาด
+     */
+    private void handleArtifactPickup(ServerPlayer player, ItemStack stack, CompoundTag tag) {
+        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        String artifactKey = rl != null ? rl.toString().toLowerCase(Locale.ROOT) : stack.getItem().toString().toLowerCase(Locale.ROOT);
+
+        // ดึงประวัติ Artifact ที่ผู้เล่นคนนี้เคยค้นพบแล้ว (Persistent ข้าม Restart/Relog)
+        CompoundTag playerData = player.getPersistentData();
+        CompoundTag omniData = playerData.getCompound(NBT_PLAYER_DATA);
+        if (!playerData.contains(NBT_PLAYER_DATA)) {
+            playerData.put(NBT_PLAYER_DATA, omniData);
+        }
+
+        ListTag discoveredList = omniData.getList(NBT_DISCOVERED_ARTIFACTS, Tag.TAG_STRING);
+        boolean alreadyDiscovered = false;
+        for (int i = 0; i < discoveredList.size(); i++) {
+            if (discoveredList.getString(i).equalsIgnoreCase(artifactKey)) {
+                alreadyDiscovered = true;
+                break;
+            }
+        }
+
+        // มาร์กที่ตัวไอเทมไว้เสมอ เพื่อป้องกันการโยนแล้วเก็บใหม่
+        tag.putBoolean(NBT_ANNOUNCED, true);
+
+        // หากผู้เล่นเคยค้นพบ Artifact ชิ้นนี้ไปแล้ว -> "ชิ้นซ้ำกันที่ได้ครั้งที่สองจะไม่ประกาศ"
+        if (alreadyDiscovered) {
+            return;
+        }
+
+        // บันทึกว่าผู้เล่นค้นพบ Artifact ชิ้นนี้แล้วเป็นครั้งแรก
+        discoveredList.add(StringTag.valueOf(artifactKey));
+        omniData.put(NBT_DISCOVERED_ARTIFACTS, discoveredList);
+
+        // Cooldown ป้องกันสแปมกรณีเปิดหีบแล้วเก็บรวดเร็วหลายชิ้นติดกัน
+        String cdKey = player.getUUID() + ":artifact";
+        long now = System.currentTimeMillis();
+        if (now - cooldowns.getOrDefault(cdKey, 0L) < 5000L) return;
+        cooldowns.put(cdKey, now);
+
+        String itemName = stack.getHoverName().getString();
+        broadcastCustom(
+                "👑 " + player.getName().getString() + " ค้นพบ Artifact ชิ้นใหม่: " + itemName,
+                "บันทึกการค้นพบ Artifact ลงในคอลเลกชันแล้ว (" + artifactKey + ")",
+                0xFBBF24, "SCALE_POP", "minecraft:ui.toast.challenge_complete", 130
+        );
+
+        GasHotReloadManager.INSTANCE.logEventAsync("ARTIFACT_DISCOVERY", player.getName().getString(), itemName + " [" + artifactKey + "]");
+    }
+
+    /**
+     * จัดการการเก็บไอเทมระดับ Top-Tier ของ Apotheosis (Mythic, Ancient, ฯลฯ)
+     */
+    private void handleApotheosisPickup(ServerPlayer player, ItemStack stack, CompoundTag tag, String rarity) {
         String cdKey = player.getUUID() + ":loot";
         long now = System.currentTimeMillis();
         if (now - cooldowns.getOrDefault(cdKey, 0L) < 8000L) return;
@@ -112,36 +202,137 @@ public class AnnouncementTriggerHandler {
 
         tag.putBoolean(NBT_ANNOUNCED, true);
         String itemName = stack.getHoverName().getString();
-        int color = detectedRarity.contains("MYTHIC") || detectedRarity.contains("ANCIENT") ? 0xF59E0B : 0xA855F7;
+
+        int color = 0xF59E0B; // Gold/Orange สำหรับ Mythic
+        String anim = "RUNE_GLOW";
+        if (rarity.equals("ANCIENT") || rarity.equals("ESOTERIC") || rarity.equals("HEIRLOOM")) {
+            color = 0xEF4444; // Crimson/Rainbow สำหรับ Ancient และระดับสูงสุด
+            anim = "SCALE_POP";
+        }
 
         broadcastCustom(
-                "⚔ " + player.getName().getString() + " ได้รับไอเทมระดับ " + detectedRarity + ": " + itemName,
-                "ตรวจพบไอเทมหายากในระบบเซิร์ฟเวอร์",
-                color, "RUNE_GLOW", "minecraft:ui.toast.challenge_complete", 120
+                "⚔ " + player.getName().getString() + " ได้รับไอเทมระดับ " + rarity + ": " + itemName,
+                "ตรวจพบไอเทมระดับตำนานในระบบเซิร์ฟเวอร์",
+                color, anim, "minecraft:ui.toast.challenge_complete", 120
         );
-        GasHotReloadManager.INSTANCE.logEventAsync("EPIC_LOOT", player.getName().getString(), detectedRarity + " - " + itemName);
+
+        GasHotReloadManager.INSTANCE.logEventAsync("EPIC_LOOT", player.getName().getString(), rarity + " - " + itemName);
     }
 
-    private String detectApotheosisOrVanillaRarity(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        if (tag != null && tag.contains("affix_data")) {
-            String apoRarity = tag.getCompound("affix_data").getString("rarity").toLowerCase(Locale.ROOT);
-            for (String token : lootFilterCsv.split(",")) {
-                String clean = token.trim().toLowerCase(Locale.ROOT);
-                if (!clean.isEmpty() && apoRarity.contains(clean)) {
-                    return apoRarity.replace("apotheosis:", "").toUpperCase(Locale.ROOT);
+    /**
+     * ตรวจสอบว่าไอเทมเป็นชิ้นส่วนประเภท Artifact หรือ Relic หรือไม่
+     */
+    public boolean isArtifactItem(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (rl != null) {
+            String ns = rl.getNamespace().toLowerCase(Locale.ROOT);
+            String path = rl.getPath().toLowerCase(Locale.ROOT);
+            String fullId = rl.toString().toLowerCase(Locale.ROOT);
+
+            // 1. Mod Namespaces สำหรับ Artifact & Relic
+            if (ns.equals("relics") || ns.equals("artifacts") || ns.equals("betterarcheology")) {
+                if (path.contains("artifact") || path.contains("relic") || ns.equals("relics") || ns.equals("artifacts")) {
+                    return true;
                 }
             }
+
+            // 2. ตรวจสอบตาม Item Filters จาก Config
+            String filterCsv = "relics:*,artifacts:*,*artifact*,*relic*";
+            try {
+                if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.artifactItemFilters != null) {
+                    filterCsv = OmniConfig.INSTANCE.artifactItemFilters.get();
+                }
+            } catch (Exception ignored) {}
+
+            if (matchesWildcardList(fullId, filterCsv)) {
+                return true;
+            }
         }
-        if (stack.getRarity() == Rarity.EPIC) {
-            return "EPIC";
+
+        // 3. ตรวจสอบระดับความหายากชื่อ ARTIFACT จาก Apotheotic Additions
+        String apoRarity = detectApotheosisRarity(stack);
+        return apoRarity != null && apoRarity.equalsIgnoreCase("ARTIFACT");
+    }
+
+    /**
+     * ดึงระดับความหายากจาก Apotheosis (Affix Items, Gems และ Tag)
+     */
+    public static String detectApotheosisRarity(ItemStack stack) {
+        if (stack.isEmpty() || !stack.hasTag()) return null;
+        CompoundTag tag = stack.getTag();
+        if (tag == null) return null;
+
+        // 1. ตรวจจาก Affix Data: affix_data.rarity
+        if (tag.contains("affix_data")) {
+            CompoundTag affixData = tag.getCompound("affix_data");
+            if (affixData.contains("rarity")) {
+                String r = affixData.getString("rarity").trim().toLowerCase(Locale.ROOT);
+                return cleanRarityName(r);
+            }
         }
+
+        // 2. ตรวจจาก Gem Item: gem & rarity
+        if (tag.contains("gem") && tag.contains("rarity")) {
+            String r = tag.getString("rarity").trim().toLowerCase(Locale.ROOT);
+            return cleanRarityName(r);
+        }
+
+        // 3. ตรวจจาก Root Tag rarity (ถ้ามี)
+        if (tag.contains("rarity") && tag.getTagType("rarity") == Tag.TAG_STRING) {
+            String r = tag.getString("rarity").trim().toLowerCase(Locale.ROOT);
+            if (!r.isEmpty()) {
+                return cleanRarityName(r);
+            }
+        }
+
         return null;
+    }
+
+    private static String cleanRarityName(String raw) {
+        if (raw == null || raw.isEmpty()) return null;
+        if (raw.contains(":")) {
+            raw = raw.substring(raw.indexOf(":") + 1);
+        }
+        return raw.toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * กรองเฉพาะ 2 ลำดับบนสุดของ Apotheosis เท่านั้น:
+     * - ลำดับต่ำกว่า (Common, Uncommon, Rare, Epic) จะคืนค่า false เสมอ
+     * - 2 ลำดับบนสุด (Mythic, Ancient รวมทั้ง Heirloom, Esoteric) จะคืนค่า true
+     */
+    private boolean isTopTierApotheosisRarity(String rarity) {
+        if (rarity == null) return false;
+
+        // ดักตัดลำดับทั่วไปออก 100%
+        if (rarity.equals("COMMON") || rarity.equals("UNCOMMON") || rarity.equals("RARE") || rarity.equals("EPIC")) {
+            return false;
+        }
+
+        // หากเป็น ARTIFACT จะถูกส่งไปประมวลผลในระบบ Artifact (ชิ้นแรกประกาศ ชิ้นซ้ำไม่ประกาศ)
+        if (rarity.equals("ARTIFACT")) {
+            return false;
+        }
+
+        String allowedCsv = "MYTHIC,ANCIENT,HEIRLOOM,ESOTERIC";
+        try {
+            if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.apotheosisAnnounceRarities != null) {
+                allowedCsv = OmniConfig.INSTANCE.apotheosisAnnounceRarities.get();
+            }
+        } catch (Exception ignored) {}
+
+        for (String token : allowedCsv.split(",")) {
+            if (rarity.equalsIgnoreCase(token.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @SubscribeEvent
     public void onMobKilled(LivingDeathEvent event) {
-        if (!announcementsEnabled || event.getEntity().level().isClientSide()) return;
+        if (!isAnnouncementsEnabled() || event.getEntity().level().isClientSide()) return;
         if (event.getEntity().getPersistentData().getBoolean(UniversalBossManager.NBT_BOSS_TAG)) return; // จัดการใน BossManager แล้ว
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
 
@@ -149,7 +340,14 @@ public class AnnouncementTriggerHandler {
         if (entityRl == null) return;
         String idStr = entityRl.toString().toLowerCase(Locale.ROOT);
 
-        if (matchesWildcardList(idStr, mobKillFilterCsv)) {
+        String mobFilterCsv = "cataclysm:*,iceandfire:*_dragon,twilightforest:*,mowziesmobs:*";
+        try {
+            if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.mobKillFilter != null) {
+                mobFilterCsv = OmniConfig.INSTANCE.mobKillFilter.get();
+            }
+        } catch (Exception ignored) {}
+
+        if (matchesWildcardList(idStr, mobFilterCsv)) {
             String mobName = event.getEntity().getDisplayName().getString();
             broadcastCustom(
                     "☠ " + player.getName().getString() + " สังหารม็อบพิเศษ " + mobName + " สำเร็จ!",
@@ -160,13 +358,13 @@ public class AnnouncementTriggerHandler {
         }
     }
 
-    private boolean matchesWildcardList(String entityId, String csv) {
+    private boolean matchesWildcardList(String id, String csv) {
         for (String raw : csv.split(",")) {
             String p = raw.trim().toLowerCase(Locale.ROOT);
             if (p.isEmpty()) continue;
-            if (p.equals("*") || p.equals(entityId)) return true;
-            if (p.endsWith("*") && entityId.startsWith(p.substring(0, p.length() - 1))) return true;
-            if (p.startsWith("*") && entityId.endsWith(p.substring(1))) return true;
+            if (p.equals("*") || p.equals(id)) return true;
+            if (p.endsWith("*") && id.startsWith(p.substring(0, p.length() - 1))) return true;
+            if (p.startsWith("*") && id.endsWith(p.substring(1))) return true;
         }
         return false;
     }

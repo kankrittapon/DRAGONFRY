@@ -72,7 +72,10 @@
 
 ---
 
-### 4. 🖥️ ControlCore (Remote Control & Web Studio)
+### 4. 🖥️ ControlCore (Remote Control, Announcements & Web Studio)
+* **Smart Center-Screen Announcements:**
+  * **Apotheosis Top-2 Rarity Rule:** Only the top 2 highest rarities (**Mythic** and **Ancient** / **Heirloom**, **Esoteric**) trigger center-screen announcements. Common, Uncommon, Rare, and Epic gear will *never* spam the screen.
+  * **Artifact & Relic First-Time Discovery:** The first time a player discovers a unique Artifact or Relic (`relics:*`, `artifacts:*`, or rarity `ARTIFACT`), a celebratory announcement is triggered. If they find duplicate copies of the same artifact later, the announcement is **completely silent** (tracked per player in persistent NBT).
 * **OmniCore Web Studio (PC GUI):**
   * Accessible via web browser at `/studio` or through the server management panel.
   * Create, edit, and fine-tune boss profiles, HP/ATK multipliers, custom loot tables, and announcement banners.
@@ -88,6 +91,8 @@
 | :--- | :--- | :--- |
 | `/omnicore status` | Everyone | View active World Bosses and Landmark respawn cooldowns |
 | `/omnicore list` | Everyone | List all registered boss profiles in the system |
+| `/omnicore artifacts list` | Everyone | View all unique Artifacts you have discovered so far |
+| `/omnicore artifacts reset` | OP Level 2 | Reset your personal Artifact discovery history (for testing) |
 | `/omnicore promote [radius]` | OP Level 2 | Promote target mob into a permanent Landmark World Boss |
 | `/omnicore respawnnow <id>` | OP Level 2 | Force spawn a Landmark Boss immediately (testing) |
 | `/omnicore system status` | OP Level 2 | Check status of random and natural spawn systems |

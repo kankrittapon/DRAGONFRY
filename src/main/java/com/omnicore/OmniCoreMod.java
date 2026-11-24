@@ -7,6 +7,9 @@ import com.omnicore.server.EmbeddedStudioServer;
 import com.omnicore.server.GasHotReloadManager;
 import com.omnicore.server.UniversalBossManager;
 import com.omnicore.server.UniversalBossManager.BossProfile;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -87,9 +90,28 @@ public class OmniCoreMod {
                 }))
                 .then(Commands.literal("reload").executes(ctx -> {
                     UniversalBossManager.INSTANCE.loadRegistryFromFile();
-                    ctx.getSource().sendSuccess(() -> Component.literal("§aโหลดค่าตั้งค่าบอสจาก dragonfyre_bosses.json ใหม่สำเร็จแล้ว! (" + UniversalBossManager.INSTANCE.getRegisteredBossCount() + " ตัว)"), true);
+                    ctx.getSource().sendSuccess(() -> Component.literal("§aโหลดค่าตั้งค่าบอสจาก omnicore_bosses.json ใหม่สำเร็จแล้ว! (" + UniversalBossManager.INSTANCE.getRegisteredBossCount() + " ตัว)"), true);
                     return 1;
                 }))
+                .then(Commands.literal("artifacts")
+                    .then(Commands.literal("list").executes(ctx -> {
+                        ServerPlayer sp = ctx.getSource().getPlayerOrException();
+                        CompoundTag omniData = sp.getPersistentData().getCompound(AnnouncementTriggerHandler.NBT_PLAYER_DATA);
+                        ListTag list = omniData.getList(AnnouncementTriggerHandler.NBT_DISCOVERED_ARTIFACTS, Tag.TAG_STRING);
+                        ctx.getSource().sendSuccess(() -> Component.literal("§6=== [รายการ Artifact ที่คุณค้นพบแล้ว (" + list.size() + " ชิ้น)] ==="), false);
+                        for (int i = 0; i < list.size(); i++) {
+                            final int idx = i;
+                            ctx.getSource().sendSuccess(() -> Component.literal(" §e• §f" + list.getString(idx)), false);
+                        }
+                        return 1;
+                    }))
+                    .then(Commands.literal("reset").executes(ctx -> {
+                        ServerPlayer sp = ctx.getSource().getPlayerOrException();
+                        CompoundTag omniData = sp.getPersistentData().getCompound(AnnouncementTriggerHandler.NBT_PLAYER_DATA);
+                        omniData.remove(AnnouncementTriggerHandler.NBT_DISCOVERED_ARTIFACTS);
+                        ctx.getSource().sendSuccess(() -> Component.literal("§aรีเซ็ตประวัติการค้นพบ Artifact ของคุณเรียบร้อยแล้ว!"), true);
+                        return 1;
+                    })))
                 .then(Commands.literal("respawnnow")
                     .then(Commands.argument("boss", StringArgumentType.greedyString())
                         .executes(ctx -> {

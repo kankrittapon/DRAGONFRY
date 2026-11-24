@@ -28,6 +28,13 @@ public class OmniConfig {
     public final ForgeConfigSpec.ConfigValue<String> gasSecretToken;
     public final ForgeConfigSpec.IntValue gasPollIntervalSeconds;
 
+    // [announcements]
+    public final ForgeConfigSpec.BooleanValue announcementsEnabled;
+    public final ForgeConfigSpec.ConfigValue<String> apotheosisAnnounceRarities;
+    public final ForgeConfigSpec.BooleanValue announceArtifactsFirstTimeOnly;
+    public final ForgeConfigSpec.ConfigValue<String> artifactItemFilters;
+    public final ForgeConfigSpec.ConfigValue<String> mobKillFilter;
+
     static {
         Pair<OmniConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(OmniConfig::new);
         SPEC = specPair.getRight();
@@ -114,6 +121,33 @@ public class OmniConfig {
         gasPollIntervalSeconds = builder
                 .comment("ระยะห่างการ Polling ดึงข้อมูลจาก Google Sheets (วินาที)")
                 .defineInRange("pollIntervalSeconds", 30, 5, 3600);
+
+        builder.pop();
+
+        builder.comment("==================================================================",
+                        " Center-Screen Announcements & Loot Detection Settings",
+                        "==================================================================")
+               .push("announcements");
+
+        announcementsEnabled = builder
+                .comment("เปิด/ปิดระบบป้ายประกาศกลางจอสำหรับไอเทมหายากและสังหารบอส")
+                .define("enabled", true);
+
+        apotheosisAnnounceRarities = builder
+                .comment("ระดับความหายากของ Apotheosis ที่จะประกาศกลางจอ (ประกาศเฉพาะ 2 ลำดับบนสุด: MYTHIC, ANCIENT)")
+                .define("apotheosisRarities", "MYTHIC,ANCIENT,HEIRLOOM,ESOTERIC");
+
+        announceArtifactsFirstTimeOnly = builder
+                .comment("ประกาศเมื่อผู้เล่นค้นพบ Artifact ชิ้นใหม่เป็นครั้งแรกเท่านั้น (ชิ้นซ้ำกันจะไม่ประกาศ)")
+                .define("artifactFirstTimeOnly", true);
+
+        artifactItemFilters = builder
+                .comment("ฟิลเตอร์ Namespace หรือ Item ID สำหรับไอเทม Artifact/Relic (คั่นด้วยจุลภาค)")
+                .define("artifactItemFilters", "relics:*,artifacts:*,*artifact*,*relic*");
+
+        mobKillFilter = builder
+                .comment("ฟิลเตอร์ Entity ID สำหรับม็อบพิเศษที่จะประกาศเมื่อถูกสังหาร (Wildcard)")
+                .define("mobKillFilter", "cataclysm:*,iceandfire:*_dragon,twilightforest:*,mowziesmobs:*");
 
         builder.pop();
     }
