@@ -282,6 +282,37 @@ public class OmniCoreMod {
                     return 1;
                 }))
                 .then(Commands.literal("announce")
+                    .then(Commands.literal("toggle").executes(ctx -> {
+                        AnnouncementTriggerHandler.INSTANCE.announcementsEnabled = !AnnouncementTriggerHandler.INSTANCE.announcementsEnabled;
+                        boolean en = AnnouncementTriggerHandler.INSTANCE.announcementsEnabled;
+                        ctx.getSource().sendSuccess(() -> Component.literal("§6[OmniCore] การประกาศกลางจอทั้งหมด: " + (en ? "§aเปิดใช้งาน (ON)" : "§cปิดใช้งาน (OFF)")), true);
+                        return 1;
+                    }))
+                    .then(Commands.literal("mob")
+                        .then(Commands.literal("enable").executes(ctx -> {
+                            AnnouncementTriggerHandler.INSTANCE.mobAnnounceEnabled = true;
+                            ctx.getSource().sendSuccess(() -> Component.literal("§a[OmniCore] เปิดการประกาศเมื่อสังหารบอสแล้ว"), true);
+                            return 1;
+                        }))
+                        .then(Commands.literal("disable").executes(ctx -> {
+                            AnnouncementTriggerHandler.INSTANCE.mobAnnounceEnabled = false;
+                            ctx.getSource().sendSuccess(() -> Component.literal("§c[OmniCore] ปิดการประกาศเมื่อสังหารบอสแล้ว"), true);
+                            return 1;
+                        }))
+                        .then(Commands.literal("toggle").executes(ctx -> {
+                            AnnouncementTriggerHandler.INSTANCE.mobAnnounceEnabled = !AnnouncementTriggerHandler.INSTANCE.mobAnnounceEnabled;
+                            boolean en = AnnouncementTriggerHandler.INSTANCE.mobAnnounceEnabled;
+                            ctx.getSource().sendSuccess(() -> Component.literal("§6[OmniCore] การประกาศสังหารบอส: " + (en ? "§aเปิด (ON)" : "§cปิด (OFF)")), true);
+                            return 1;
+                        }))
+                    )
+                    .then(Commands.literal("msg")
+                        .then(Commands.argument("message", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                String msg = StringArgumentType.getString(ctx, "message");
+                                AnnouncementTriggerHandler.broadcastCustom("📢 " + msg, "ประกาศจากผู้ดูแลเซิร์ฟเวอร์", 0xF59E0B, "RUNE_GLOW", "minecraft:block.bell.use", 120);
+                                return 1;
+                            })))
                     .then(Commands.argument("message", StringArgumentType.greedyString())
                         .executes(ctx -> {
                             String msg = StringArgumentType.getString(ctx, "message");

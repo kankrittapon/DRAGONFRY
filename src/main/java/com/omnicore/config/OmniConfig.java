@@ -38,6 +38,8 @@ public class OmniConfig {
     public final ForgeConfigSpec.BooleanValue announceArtifactsFirstTimeOnly;
     public final ForgeConfigSpec.ConfigValue<String> artifactItemFilters;
     public final ForgeConfigSpec.ConfigValue<String> mobKillFilter;
+    public final ForgeConfigSpec.ConfigValue<String> mobKillBlacklist;
+    public final ForgeConfigSpec.DoubleValue mobKillMinHealth;
 
     static {
         Pair<OmniConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(OmniConfig::new);
@@ -166,8 +168,16 @@ public class OmniConfig {
                 .define("artifactItemFilters", "relics:*,artifacts:*,*artifact*,*relic*");
 
         mobKillFilter = builder
-                .comment("ฟิลเตอร์ Entity ID สำหรับม็อบพิเศษที่จะประกาศเมื่อถูกสังหาร (Wildcard)")
-                .define("mobKillFilter", "cataclysm:*,iceandfire:*_dragon,twilightforest:*,mowziesmobs:*");
+                .comment("ฟิลเตอร์ Entity ID สำหรับบอสจริงที่จะประกาศเมื่อถูกสังหาร (ระบุเฉพาะตัวบอส ไม่ใส่ wildcard ม็อบทั่วไป เพื่อป้องกันสแปมลูกน้อง)")
+                .define("mobKillFilter", "cataclysm:*,iceandfire:*_dragon,iceandfire:gorgon,iceandfire:cyclops,iceandfire:hydra,mowziesmobs:ferrous_wroughtnaut,mowziesmobs:frostmaw,mowziesmobs:barako,twilightforest:naga,twilightforest:lich,twilightforest:minoshroom,twilightforest:hydra,twilightforest:knight_phantom,twilightforest:ur_ghast,twilightforest:alpha_yeti,twilightforest:snow_queen");
+
+        mobKillBlacklist = builder
+                .comment("แบล็กลิสต์ม็อบลูกน้อง/มินเนียน/สัตว์เล็กที่ห้ามประกาศกลางจอเด็ดขาด (Wildcard)")
+                .define("mobKillBlacklist", "*minion*,*baby*,*drone*,*larva*,*servant*,*summon*,*crane*,*fitter*,*raptor*,*grottol*,*lantern*,*foliaath*,*umvuthana*,twilightforest:raven,twilightforest:squirrel,twilightforest:bunny,twilightforest:tiny_bird,twilightforest:kobold,twilightforest:firefly,twilightforest:mosquito_swarm,twilightforest:slime_beetle,twilightforest:redcap*");
+
+        mobKillMinHealth = builder
+                .comment("เลือดขั้นต่ำของม็อบที่จะประกาศกลางจอ (HP Threshold ป้องกันลูกน้อง/มินเนียน)")
+                .defineInRange("mobKillMinHealth", 80.0, 1.0, 100000.0);
 
         builder.pop();
     }

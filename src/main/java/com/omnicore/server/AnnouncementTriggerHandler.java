@@ -45,6 +45,7 @@ public class AnnouncementTriggerHandler {
     public static final String NBT_DISCOVERED_ARTIFACTS = "discovered_artifacts";
 
     public volatile boolean announcementsEnabled = true;
+    public volatile boolean mobAnnounceEnabled = true;
     public volatile String minLootRarity = "MYTHIC";
 
     private final Map<String, Long> cooldowns = new ConcurrentHashMap<>();
@@ -332,15 +333,43 @@ public class AnnouncementTriggerHandler {
 
     @SubscribeEvent
     public void onMobKilled(LivingDeathEvent event) {
-        if (!isAnnouncementsEnabled() || event.getEntity().level().isClientSide()) return;
+        if (!isAnnouncementsEnabled() || !mobAnnounceEnabled || event.getEntity().level().isClientSide()) return;
         if (event.getEntity().getPersistentData().getBoolean(UniversalBossManager.NBT_BOSS_TAG)) return; // จัดการใน BossManager แล้ว
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
 
-        ResourceLocation entityRl = ForgeRegistries.ENTITY_TYPES.getKey(event.getEntity().getType());
+        net.minecraft.world.entity.LivingEntity entity = event.getEntity();
+        ResourceLocation entityRl = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
         if (entityRl == null) return;
         String idStr = entityRl.toString().toLowerCase(Locale.ROOT);
 
-        String mobFilterCsv = "cataclysm:*,iceandfire:*_dragon,twilightforest:*,mowziesmobs:*";
+        // 1. Blacklist Check: ดักตัดม็อบลูกน้อง, มินเนียน, ซัมมอน, สัตว์เล็ก, นก, ลิง, กบ ออก 100%
+        String blacklistCsv = "*minion*,*baby*,*drone*,*larva*,*servant*,*summon*,*crane*,*fitter*,*raptor*,*grottol*,*lantern*,*foliaath*,*umvuthana*,twilightforest:raven,twilightforest:squirrel,twilightforest:bunny,twilightforest:tiny_bird,twilightforest:kobold,twilightforest:firefly,twilightforest:mosquito_swarm,twilightforest:slime_beetle,twilightforest:redcap*";
+        try {
+            if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.mobKillBlacklist != null) {
+                blacklistCsv = OmniConfig.INSTANCE.mobKillBlacklist.get();
+            }
+        } catch (Exception ignored) {}
+
+        if (matchesWildcardList(idStr, blacklistCsv)) {
+            return;
+        }
+
+        // 2. Health Threshold Check: บอสจริงต้องมีเลือดสูง (ค่ามาตรฐาน >= 80 HP)
+        double minHp = 80.0;
+        try {
+            if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.mobKillMinHealth != null) {
+                minHp = OmniConfig.INSTANCE.mobKillMinHealth.get();
+            }
+        } catch (Exception ignored) {}
+
+        float maxHealth = entity.getMaxHealth();
+        // หากเลือดไม่ถึงเกณฑ์ขั้นต่ำ และไม่ใช่บอสหลักที่ระบุชื่อชัดเจน -> ไม่ประกาศเด็ดขาด
+        if (maxHealth < minHp && !isMajorBossExplicit(idStr)) {
+            return;
+        }
+
+        // 3. Whitelist Filter Check: กรองเฉพาะบอสแท้จริง
+        String mobFilterCsv = "cataclysm:*,iceandfire:*_dragon,iceandfire:gorgon,iceandfire:cyclops,iceandfire:hydra,mowziesmobs:ferrous_wroughtnaut,mowziesmobs:frostmaw,mowziesmobs:barako,twilightforest:naga,twilightforest:lich,twilightforest:minoshroom,twilightforest:hydra,twilightforest:knight_phantom,twilightforest:ur_ghast,twilightforest:alpha_yeti,twilightforest:snow_queen";
         try {
             if (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.mobKillFilter != null) {
                 mobFilterCsv = OmniConfig.INSTANCE.mobKillFilter.get();
@@ -348,14 +377,28 @@ public class AnnouncementTriggerHandler {
         } catch (Exception ignored) {}
 
         if (matchesWildcardList(idStr, mobFilterCsv)) {
-            String mobName = event.getEntity().getDisplayName().getString();
+            // 4. Anti-Spam Cooldown ต่อชนิดม็อบ (อย่างน้อย 15 วินาทีต่อ 1 ชนิดม็อบ)
+            String cdKey = "mobkill:" + idStr;
+            long now = System.currentTimeMillis();
+            if (now - cooldowns.getOrDefault(cdKey, 0L) < 15_000L) {
+                return;
+            }
+            cooldowns.put(cdKey, now);
+
+            String mobName = entity.getDisplayName().getString();
             broadcastCustom(
-                    "☠ " + player.getName().getString() + " สังหารม็อบพิเศษ " + mobName + " สำเร็จ!",
-                    "Entity: " + idStr,
-                    0x38BDF8, "SLIDE_DOWN", "minecraft:entity.wither.death", 100
+                    "☠ " + player.getName().getString() + " สังหารบอส " + mobName + " สำเร็จ!",
+                    "Boss: " + idStr + " (HP: " + Math.round(maxHealth) + ")",
+                    0x38BDF8, "SLIDE_DOWN", "minecraft:entity.wither.death", 110
             );
-            GasHotReloadManager.INSTANCE.logEventAsync("MOB_KILL", player.getName().getString(), mobName + " (" + idStr + ")");
+            GasHotReloadManager.INSTANCE.logEventAsync("BOSS_KILL", player.getName().getString(), mobName + " (" + idStr + ")");
         }
+    }
+
+    private boolean isMajorBossExplicit(String idStr) {
+        return idStr.equals("twilightforest:knight_phantom") ||
+               idStr.equals("iceandfire:siren") ||
+               idStr.contains("boss");
     }
 
     private boolean matchesWildcardList(String id, String csv) {
