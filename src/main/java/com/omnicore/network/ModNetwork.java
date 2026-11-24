@@ -36,6 +36,12 @@ public class ModNetwork {
                 .decoder(TogglePvPPacket::decode)
                 .consumerMainThread(TogglePvPPacket::handle)
                 .add();
+
+        CHANNEL.messageBuilder(SyncPvPStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(SyncPvPStatePacket::encode)
+                .decoder(SyncPvPStatePacket::decode)
+                .consumerMainThread(SyncPvPStatePacket::handle)
+                .add();
     }
 
     public static void sendToAll(Object packet) {

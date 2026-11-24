@@ -1,5 +1,7 @@
 package com.omnicore.server;
 
+import com.omnicore.network.ModNetwork;
+import com.omnicore.network.SyncPvPStatePacket;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
@@ -122,6 +124,17 @@ public class PvPManager {
                     )
             );
         }
+        syncPvPStateToClient(player);
+    }
+
+    public void syncPvPStateToClient(ServerPlayer player) {
+        if (player == null) return;
+        PlayerPvPData data = getOrCreate(player.getUUID());
+        int secLeft = 0;
+        if (data.isPkFlagged()) {
+            secLeft = Math.max(1, (int) ((data.pkExpireAtMillis - System.currentTimeMillis()) / 1000L));
+        }
+        ModNetwork.sendToPlayer(player, new SyncPvPStatePacket(data.pvpEnabled, secLeft));
     }
 
     /**
@@ -219,6 +232,20 @@ public class PvPManager {
     }
 
     @SubscribeEvent
+    public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            syncPlayerName(player);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            syncPlayerName(player);
+        }
+    }
+
+    @SubscribeEvent
     public void onNameFormat(PlayerEvent.NameFormat event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             Component formatted = getFormattedDisplayName(player);
@@ -263,6 +290,7 @@ public class PvPManager {
                     // กำลังติดสถานะ Free PK -> แสดงเวลานับถอยหลังที่ Action Bar
                     int secLeft = Math.max(1, (int) ((data.pkExpireAtMillis - now) / 1000L));
                     player.displayClientMessage(Component.literal("§4🗡️ [FREE PK] เหลือเวลาติดสถานะดาบ: §e" + secLeft + " วินาที"), true);
+                    syncPvPStateToClient(player);
                 }
             }
         }

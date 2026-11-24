@@ -1,17 +1,28 @@
-# 🌌 OmniCore — Universal Minecraft RPG & Server Engine (Forge 1.20.1)
+# 🌌 OmniCore — Universal Minecraft RPG & Server Framework (Forge 1.20.1)
 
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-brightgreen.svg)](https://minecraft.net/)
 [![Forge](https://img.shields.io/badge/Forge-47.2.20+-orange.svg)](https://files.minecraftforge.net/)
 [![Java](https://img.shields.io/badge/Java-17-red.svg)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**OmniCore** is a universal, all-in-one RPG mechanics and server control framework for **Minecraft Forge 1.20.1**. It is designed from the ground up to be **100% modpack-agnostic**, making it completely portable across any Forge modpack (such as *Cisco's Fantasy Medieval RPG*, *Prominence*, *DawnCraft*, *All The Mods*, or any custom vanilla+ pack).
-
-> 💡 **100% Server-Side Compatible:** Clients without OmniCore installed can connect and play seamlessly with all server features active. Modded clients with OmniCore enjoy extra client features such as the `Alt + C` keybind, real-time Action Bar timers, obsidian HUD banners, and custom boss health bars with damage lag trails.
+> 🌐 **Language / ภาษา:**  
+> **[ 🇹🇭 ภาษาไทย (Thai Documentation) ](#-ภาษาไทย--thai-documentation)** &nbsp;|&nbsp; **[ 🇬🇧 English (English Documentation) ](#-english-documentation)**
 
 ---
 
-## 🏛️ The 4 Core Pillars of OmniCore
+<a name="-ภาษาไทย--thai-documentation"></a>
+# 🇹🇭 ภาษาไทย — คู่มือการใช้งาน OmniCore
+
+**OmniCore** คือ Framework และ Mod ควบคุมเซิร์ฟเวอร์แนว MMORPG / RPG แบบครบวงจรสำหรับ **Minecraft Forge 1.20.1**  
+ถูกออกแบบให้เป็น **100% Modpack-Agnostic** (ทำงานได้กับทุก Modpack บนโลก ไม่ว่าจะเป็น *Cisco's Medieval RPG*, *Prominence*, *DawnCraft*, *All The Mods* หรือ Vanilla+ Custom)
+
+> 💡 **100% Server-Side Compatible (Dual-Mode):**  
+> ผู้เล่นสามารถเข้าเล่นเซิร์ฟเวอร์ได้ด้วย **Vanilla Client** หรือ Client ที่ไม่มีตัวม็อด OmniCore ได้ 100% โดยไม่หลุดและไม่ติด Error ใดๆ ทั้งสิ้น!  
+> หากผู้เล่นติดตั้ง OmniCore ในเครื่อง Client จะได้รับฟังก์ชันเสริมระดับพรีเมียมทันที: **Interactive PvP HUD Overlay**, ปลดล็อกเมาส์คลิก UI ด้วยปุ่ม **`Ctrl`**, ปุ่มลัด **`Alt + C`**, และหลอดเลือดบอสแบบแอนิเมชัน RPG
+
+---
+
+## 🏛️ สถาปัตยกรรม 4 เสาหลัก (The 4 Core Pillars)
 
 ```
                      ┌─────────────────────────────────────────┐
@@ -22,158 +33,191 @@
           ▼                  ▼                    ▼                  ▼
    ┌─────────────┐    ┌─────────────┐      ┌─────────────┐    ┌─────────────┐
    │  BossCore   │    │ CombatCore  │      │  PartyCore  │    │ ControlCore │
-   │ World Boss  │    │  PvP & PK   │      │ Zero Damage │    │ Web & Cloud │
-   │   Promote   │    │  Alt + C    │      │ FTB/Vanilla │    │ Hot-Reload  │
+   │ World Boss  │    │  PvP & PK   │      │ Zero Damage │    │ Web Studio  │
+   │  Leash & KG │    │ HUD & Cursor│      │ FTB/Vanilla │    │ GAS Cloud   │
    └─────────────┘    └─────────────┘      └─────────────┘    └─────────────┘
 ```
 
 ---
 
-### 1. ⚔️ BossCore (Universal World Boss & Mob Promoter)
-* **Universal Mob-to-Boss Promoter:** Upgrade any existing living entity from **any mod** (e.g. Ice & Fire, Cataclysm, Aquamirae, Born in Chaos, or Vanilla) into a World Boss using `/omnicore promote [radius]`.
-* **Permanent Landmark Boss Areas:** Automatically registers designated Landmark coordinates. World Bosses naturally respawn periodically upon defeat or expiration, with enforced limits: **1 mob type = 1 active boss = 1 area max** (no duplicate overlap).
-* **2-Tier Damage Balance:**
-  * *Standard Attacks:* Capped at a configurable maximum **5% of player Max HP per hit** — allowing players to duel 30,000+ HP bosses without being unfairly one-shot.
-  * *Telegraphed Ultimate (Death Skill):* Bosses telegraph an area-wide destruction skill every ~80s with screen alerts and sounds (`⚠️ [ULTIMATE] Run out of 14 blocks!`). Failure to evade results in a punishing 75% Max HP hit.
-* **Keep Inventory in Arena & Respawn Warp:**
-  * When players perish inside a World Boss arena, their inventory, equipment, and experience levels are **100% protected** from dropping.
-  * Clicking **Respawn** teleports the player directly back to the edge of the arena with 5 seconds of invulnerability (Resistance V) to jump back into action, **without resetting their home bed spawn point**.
-* **Zombie Minions & Area Auto-Cleanup:**
-  * Bosses summon armored zombie minions during phase transitions (75%, 50%, 25% HP) on a 60-second cooldown (maximum 4 active minions).
-  * Upon boss defeat or expiration, all minions despawn immediately and environmental fire is extinguished within 32 blocks.
-* **Instanced DPS Leaderboard Loot:**
-  * Drops rewards directly into participants' inventories based on damage dealt:
-    * 🥇 **Rank 1 (MVP):** Legendary Lootcrate + 3x Champion Coins + 30 EXP Levels.
-    * 🥈 **Rank 2 - 3:** Epic Lootcrate + 2x Champion Coins + 20 EXP Levels.
-    * 🥉 **Participants (>= 100 DMG):** Rare Lootcrate + 1x Champion Coin + 10 EXP Levels.
-* **Custom BossBar & Xaero Map Pins:**
-  * Features a custom RPG boss health bar with damage lag trails and real-time HP percentages.
-  * Live red boss waypoints automatically appear on Xaero's World Map & Minimap.
+### 1. ⚔️ BossCore (ระบบบอสโลกสากล & เลื่อนขั้นม็อบ)
+
+* **Universal Mob-to-Boss Promoter:**  
+  เลื่อนขั้นสิ่งมีชีวิต (Living Entity) ทุกชนิดจาก **ม็อดใดก็ได้** ในเซิร์ฟเวอร์ (เช่น *Cataclysm*, *Ice and Fire*, *Aquamirae*, *Born in Chaos* หรือ Vanilla) ให้กลายเป็น World Boss ประจำพื้นที่ด้วยคำสั่ง `/omnicore promote [radius]`
+* **ข้อจำกัดความปลอดภัยระดับสากล (Global Anti-Overlap & Duplicate Guard):**  
+  * **1 ม็อบ 1 ชนิด = สามารถเลื่อนขั้นเป็นบอสได้ 1 ตัวเท่านั้น** และ **1 พื้นที่ (Area) = มีบอสได้ 1 ตัวเท่านั้น** ไม่สามารถเกิดซ้ำหรือซ้อนทับกันได้
+* **ระบบเชือกพันธนาการบอส (8-Block Boss Leash Engine):**  
+  * ป้องกันบอสเดินเตลิดหนีออกจากพื้นที่ต่อสู้! หากบอสเคลื่อนที่ห่างจากจุดเกิดเกิน **8 บล็อก** (ปรับได้ใน config) ตัวบอสจะถูกแรงโน้มถ่วงลากและเทเลพอร์ตกลับสู่ใจกลางจุดเกิด พร้อมทั้งได้รับ Speed Boost ชั่วคราวเพื่อกลับมาสู้ต่อทันที
+* **อาณาเขตสังเวียนบอส (30-Block Arena Bounds):**  
+  * รัศมีพื้นที่ต่อสู้ถูกจำกัดให้อยู่ในระยะ **30 บล็อก** รอบตัวบอส เพื่อให้การต่อสู้กระชับและดุเดือด
+* **การปกป้องไอเทม 100% (Keep Inventory & Curios Protection):**  
+  * เมื่อผู้เล่นพลาดท่าเสียชีวิตในเขตสังเวียนบอส ไอเทมในตัว, ชุดเกราะ, อาวุธ, ค่าประสบการณ์ (EXP), รวมถึง **ไอเทมในช่อง Curios / Accessories ทั้งหมดจะไม่ตก 100%**
+  * เมื่อกดปุ่ม **เกิดใหม่ (Respawn)** ระบบจะวาร์ปผู้เล่นกลับมายังขอบสนามต่อสู้ทันที พร้อมมอบสถานะอมตะ (Resistance V) เป็นเวลา 5 วินาที โดยที่ **ไม่ทับจุดเกิดเตียงนอน (Home Bed)** เดิมของผู้เล่น
+* **ระบบสมดุลดาเมจ 2 ชั้น (Two-Tier Damage Cap):**  
+  * *การโจมตีปกติ:* ดาเมจถูกล็อกเพดานไว้ที่สูงสุด **5% ของ Max HP ผู้เล่น** ทำให้สามารถต่อสู้กับบอสเลือดหลักแสนได้อย่างสมศักดิ์ศรีโดยไม่โดน One-shot ตายในทีเดียว
+  * *ท่าไม้ตายสะเทือนโลก (Telegraphed Ultimate):* บอสจะร่ายท่าระเบิดพื้นที่ทุกๆ ~80 วินาที พร้อมข้อความเตือนกลางจอและเสียงเอฟเฟกต์นับถอยหลัง หากผู้เล่นไม่วิ่งหนีออกจากระยะ 14 บล็อก จะได้รับความเสียหายรุนแรง 75% Max HP
+* **ระบบสแกนพื้นผิวอัจฉริยะ (Dimension-Aware Surface Scanner):**  
+  * สแกนจุดเกิดบอสอย่างปลอดภัย:
+    * **Nether:** สแกนถ้ำด้านล่างระหว่าง Y=95 ถึง Y=32 เพื่อป้องกันไม่ให้บอสเกิดบนหลังคาหิน Bedrock
+    * **The End:** ตรวจสอบพื้นผิวเกาะ ป้องกันไม่ให้บอสหรือผู้เล่นตกลงไปใน Void
+    * **Overworld:** กรองไม่ให้เกิดในน้ำ ลาวา หรือใต้ถ้ำทึบ
+* **ระบบของรางวัล DPS Leaderboard & Fallback อัตโนมัติ:**  
+  * แจกของรางวัลเข้าตัวผู้เล่นโดยตรงตามสัดส่วนดาเมจที่ทำได้ (MVP อันดับ 1, 2-3, และผู้ร่วมต่อสู้) พร้อมโบนัส Last-Hit
+  * **Dynamic Fallback:** หากเซิร์ฟเวอร์ไม่มีม็อด `cisco_mod` หรือ `ftbquests` ระบบจะสลับมาแจกไอเทม Vanilla ที่มีค่าสูง (`Netherite Scrap`, `Diamond`, `Emerald`) ให้อัตโนมัติ 100%
 
 ---
 
-### 2. 🗡️ CombatCore / PvPCore (PvP Toggle & Free PK Engine)
-* **Client Keybind:** Press **`Alt + C`** (configurable in Controls) to toggle PvP mode instantly.
-* **Player Name Visual Indicators:**
-  * **Peaceful (PvP OFF):** Standard white player name.
-  * **PvP Mode ON:** **`§c⚔ [PvP] §fPlayerName`** displayed above the player and in the Tab List.
-  * **Free PK (Criminal):** **`§4🗡️ [PK] §cPlayerName`** displayed when attacking another player.
-* **Free PK Mechanics:**
-  * Anyone can attack a Free PK player without penalty or becoming flagged themselves.
-  * Real-time countdown on the Action Bar HUD: `🗡️ [FREE PK] Status expires in: 45s`.
-  * **Combat-Lock:** Players flagged as Free PK are blocked from toggling PvP OFF until the 45-second timer elapses.
+### 2. 🗡️ CombatCore (ระบบสลับโหมด PvP & Free PK สไตล์ MMORPG)
+
+* **Interactive HUD Badge & Cursor Screen (ใหม่ล่าสุด!):**  
+  * แสดงสัญลักษณ์สถานะมุมจอตลอดเวลา:
+    * 🛡️ **SAFE [PVE]** (สีเขียว): โหมดสงบ ไม่สามารถตีผู้เล่นอื่นได้ และไม่ถูกผู้เล่นอื่นโจมตี
+    * ⚔️ **PVP [ON]** (สีแดง): เปิดโหมดต่อสู้ ชื่อกลายเป็น `§c⚔ [PvP] PlayerName`
+    * 🗡️ **FREE PK** (สีแดงเข้มกะพริบ): ติดสถานะ Free PK พร้อมเวลานับถอยหลัง `🗡 PK [45s]`
+  * **ปุ่มปลดล็อกเคอร์เซอร์เมาส์ (`Ctrl`):**  
+    * กดปุ่ม `Ctrl` (หรือปุ่มที่ตั้งไว้) เพื่อเปิด **Transparent Cursor Screen** หน้าจอจะโปร่งใส 100% ให้คุณใช้เมาส์คลิกที่ปุ่ม PvP บน HUD ได้ทันทีเหมือนเกม MMORPG
+    * เมื่อปล่อยปุ่ม `Ctrl` หน้าจอจะปิดลงและกลับสู่มุมมองสายตาปกติทันที!
+  * **ปุ่มลัดสลับด่วน:** สามารถกด `Alt + C` หรือพิมพ์คำสั่ง `/pvp` ได้ตลอดเวลา
+* **กลไก Free PK (45 วินาที):**  
+  * เมื่อผู้เล่นที่เปิด PvP เริ่มโจมตีผู้เล่นอื่น จะได้รับสถานะ **🗡️ Free PK เป็นเวลา 45 วินาที** (มีสัญลักษณ์ดาบนำหน้าชื่อ)
+  * ในช่วง 45 วินาทีนี้ **ผู้เล่นทุกคนในเซิร์ฟเวอร์สามารถรุมโจมตีผู้เล่นคนนี้ได้ฟรี** โดยผู้ที่ตีจะไม่ติดโทษ
+  * **Combat Lock:** ผู้ที่ติดสถานะ Free PK จะไม่สามารถกดปิด PvP หนีได้จนกว่าจะหมดเวลา 45 วินาที
+
+---
+
+### 3. 🛡️ PartyCore (ป้องกัน Friendly Fire สมาชิกปาร์ตี้ 100%)
+
+* รองรับการเชื่อมโยงอัตโนมัติผ่าน Reflection กับ:
+  * **FTB Teams API**
+  * **Vanilla Scoreboard Teams**
+* **ยกเลิกดาเมจระหว่างเพื่อนร่วมทีม 100%:**  
+  สมาชิกในปาร์ตี้เดียวกันจะไม่สามารถสร้างความเสียหายให้แก่กันได้ ไม่ว่าจะเกิดจากการฟัน, ธนู, เวทมนตร์, ยาพิษ, หรือสมุนที่เรียกออกมา แม้ว่าจะเปิดโหมด PvP ค้างไว้ก็ตาม
+
+---
+
+### 4. 🖥️ ControlCore (ระบบประกาศกลางจอ, Web Studio & Cloud Sync)
+
+* **การแจ้งเตือนกลางจออัจฉริยะ (Smart Banner Announcements):**  
+  * **Apotheosis Top-2 Tier Rule:** กรองการประกาศไอเทมดรอป จะแจ้งเตือนเฉพาะ 2 ระดับสูงสุดเท่านั้น (**Mythic** และ **Ancient** / **Heirloom**) ไอเทมระดับ Common, Uncommon, Rare จะไม่ส่งเสียงหรือขึ้นบังหน้าจอ
+  * **Artifacts & Relics First Discovery:** เมื่อผู้เล่นค้นพบ Artifact ชิ้นใหม่เป็นครั้งแรก จะมีการประกาศยินดีกลางจอ แต่เมื่อเก็บได้ชิ้นเดิมซ้ำเป็นครั้งที่สอง จะไม่มีการประกาศซ้ำ (บันทึกข้อมูลแยกรายคนใน NBT)
+* **OmniCore Web Studio:** หน้าเว็บควบคุมเซิร์ฟเวอร์ผ่าน Browser จัดการโปรไฟล์บอส, อัตราคูณ HP/ATK, และกฎการประกาศ
+* **Google Apps Script (GAS) Cloud Sync:** เชื่อมต่อฐานข้อมูล Google Sheets อัปเดตและ Hot-Reload การตั้งค่าโดยไม่ต้องรีสตาร์ตเซิร์ฟเวอร์
+
+---
+
+## 🎮 ตารางคำสั่งทั้งหมด (Commands Reference)
+
+| คำสั่ง (Command) | ระดับสิทธิ์ | คำอธิบาย |
+| :--- | :--- | :--- |
+| `/omnicore status` | ผู้เล่นทุกคน | ตรวจสอบรายชื่อ World Boss ที่ยังมีชีวิต และเวลานับถอยหลังของ Landmark Boss |
+| `/omnicore list` | ผู้เล่นทุกคน | ดูรายชื่อโปรไฟล์บอสทั้งหมดที่มีในระบบ |
+| `/omnicore artifacts list` | ผู้เล่นทุกคน | ดูรายชื่อ Artifacts และ Relics ทั้งหมดที่คุณเคยค้นพบแล้ว |
+| `/omnicore artifacts reset` | OP Level 2 | รีเซ็ตประวัติการค้นพบ Artifacts ของตัวเอง (สำหรับทดสอบ) |
+| `/omnicore promote [radius]` | OP Level 2 | ส่องเป้าหมายม็อบที่มองอยู่ แล้วเลื่อนขั้นเป็น Landmark World Boss ถาวร |
+| `/omnicore respawnnow <id>` | OP Level 2 | บังคับเกิดบอส Landmark ตัวที่ระบุทันที |
+| `/omnicore system status` | OP Level 2 | ตรวจสอบสถานะการเปิด/ปิดของระบบบอสสุ่ม และระบบเลื่อนขั้นอัตโนมัติ |
+| `/omnicore system random <enable\|disable>` | OP Level 2 | เปิด/ปิด ระบบสุ่มเกิดบอสโลกอัตโนมัติ |
+| `/omnicore system promote <enable\|disable>` | OP Level 2 | เปิด/ปิด ระบบเลื่อนขั้นม็อบตามธรรมชาติ |
+| `/omnicore mobs` | OP Level 2 | สแกนและส่งออกรายชื่อม็อบทั้งหมดในเซิร์ฟเวอร์ลงไฟล์ JSON |
+| `/omnicore reload` | OP Level 2 | รีโหลดการตั้งค่าและโปรไฟล์บอสจาก `config/omnicore_bosses.json` ทันที |
+| `/omnicore clear` | OP Level 2 | ลบบอสโลกและอารีน่าที่เปิดใช้งานอยู่ทั้งหมดทันที |
+| `/pvp [on\|off\|toggle]` | ผู้เล่นทุกคน | สลับโหมดต่อสู้ PvP (หรือใช้ปุ่ม `Ctrl` คลิก HUD หรือกด `Alt + C`) |
+
+---
+---
+
+<a name="-english-documentation"></a>
+# 🇬🇧 English — OmniCore Complete Documentation
+
+**OmniCore** is a universal, all-in-one MMORPG-style server mechanics and gameplay control framework built for **Minecraft Forge 1.20.1**.  
+Engineered from the ground up to be **100% Modpack-Agnostic**, it is plug-and-play across any Forge modpack (*Cisco's Fantasy Medieval RPG*, *Prominence*, *DawnCraft*, *All The Mods*, or custom vanilla+ packs).
+
+> 💡 **100% Server-Side Compatible (Dual-Mode):**  
+> Vanilla clients and modded clients without OmniCore can connect to the server without any crashes, errors, or disconnection issues!  
+> Clients that have the `omnicore.jar` installed in their `mods/` directory unlock client-side features: **Interactive PvP HUD Overlay**, mouse cursor unlock via **`Left Ctrl`**, quick-toggle **`Alt + C`**, and animated RPG boss bars with lag damage trails.
+
+---
+
+## 🏛️ The 4 Core Pillars
+
+### 1. ⚔️ BossCore (Universal World Boss & Mob Promoter)
+
+* **Universal Mob-to-Boss Promoter:**  
+  Promote any living mob from **any installed mod** (Cataclysm, Ice and Fire, Aquamirae, Born in Chaos, Vanilla, etc.) into an instanced World Boss using `/omnicore promote [radius]`.
+* **Global Anti-Overlap & Duplicate Guard:**  
+  * **1 mob type = 1 active boss max**, and **1 designated area = 1 active boss max**. Prevents duplicate spawns and stacked bosses.
+* **8-Block Leash Tethering Engine:**  
+  * Bosses cannot stray far from their spawn location. Moving beyond **8 blocks** (configurable) triggers a tether pull and instant reposition back to the arena center with a brief recovery speed boost.
+* **30-Block Arena Bounds:**  
+  * Combat is focused within a 30-block circular zone around the boss.
+* **100% Keep-Inventory & Curios Protection:**  
+  * Dying within a World Boss arena guarantees zero item drops: main inventory, armor, offhand, experience levels, and **all Curios / Accessories slots** are 100% protected.
+  * Clicking **Respawn** teleports players directly to the edge of the arena with Resistance V (5 seconds), **without overwriting their home bed spawn point**.
+* **Two-Tier Damage Scaling:**  
+  * *Standard Attacks:* Capped at **5% of player Max HP per hit**, preventing unfair one-shots against high-tier bosses.
+  * *Telegraphed Ultimate:* Boss charges an arena-wide shockwave every ~80s with warning audio and title alerts (`⚠️ [ULTIMATE] Run out of 14 blocks!`). Failure to evade results in a devastating 75% Max HP hit.
+* **Dimension-Aware Surface Scanner:**  
+  * Prevents Nether roof bedrock spawns (scans cavern floors between Y=95 and Y=32).
+  * Prevents The End void drops (verifies solid island surface above Y=20).
+* **DPS Leaderboard & Dynamic Item Fallback:**  
+  * Instanced rewards delivered directly to players' inventories based on damage dealt (MVP, Top 2-3, participants >= 100 DMG) and Last-Hit bonus.
+  * **Dynamic Fallback:** If `cisco_mod` or `ftbquests` are not present, automatically awards high-tier Vanilla items (`Netherite Scrap`, `Diamond`, `Emerald`).
+
+---
+
+### 2. 🗡️ CombatCore (PvP Toggle & Free PK Engine)
+
+* **Interactive PvP HUD Badge & Cursor Screen:**  
+  * Always-visible HUD badge displaying current combat state:
+    * 🛡️ **SAFE [PVE]** (Emerald Green): Peaceful mode. Cannot attack players; cannot be damaged by players.
+    * ⚔️ **PVP [ON]** (Crimson Red): PvP enabled. Name displays `§c⚔ [PvP] PlayerName`.
+    * 🗡️ **FREE PK** (Flashing Amber/Red): Free PK flag active with countdown `🗡 PK [45s]`.
+  * **Mouse Cursor Unlock (`Ctrl`):**  
+    * Press and hold `Left Ctrl` (configurable) to summon a **100% transparent screen** that frees your mouse cursor to click the PvP badge directly, exactly like modern MMORPGs.
+    * Release `Ctrl` to immediately resume camera control.
+  * **Quick Shortcuts:** Instant toggle with `Alt + C` or `/pvp`.
+* **Free PK Mechanics (45-Second Penalty):**  
+  * Striking another player immediately inflicts the **Free PK flag for 45 seconds**.
+  * Any player on the server may attack a Free PK player without receiving penalties.
+  * **Combat Lock:** Players cannot disable PvP while their Free PK timer is active.
 
 ---
 
 ### 3. 🛡️ PartyCore (Friendly Fire Protection)
-* Full reflection-based compatibility with **FTB Teams** and **Vanilla Teams**.
-* **100% Damage Interception:** Party members cannot damage each other under any circumstances (melee attacks, arrows, magic, splash potions, or summoned minions are canceled).
-* Works even when players have PvP or Free PK enabled.
+
+* Seamless reflection-based integration with:
+  * **FTB Teams API**
+  * **Vanilla Scoreboard Teams**
+* **100% Damage Interception:**  
+  Party members cannot harm each other under any circumstance (swords, bows, magic, potions, or minion summons), even if both players have PvP mode enabled.
 
 ---
 
 ### 4. 🖥️ ControlCore (Remote Control, Announcements & Web Studio)
-* **Smart Center-Screen Announcements:**
-  * **Apotheosis Top-2 Rarity Rule:** Only the top 2 highest rarities (**Mythic** and **Ancient** / **Heirloom**, **Esoteric**) trigger center-screen announcements. Common, Uncommon, Rare, and Epic gear will *never* spam the screen.
-  * **Artifact & Relic First-Time Discovery:** The first time a player discovers a unique Artifact or Relic (`relics:*`, `artifacts:*`, or rarity `ARTIFACT`), a celebratory announcement is triggered. If they find duplicate copies of the same artifact later, the announcement is **completely silent** (tracked per player in persistent NBT).
-* **OmniCore Web Studio (PC GUI):**
-  * Accessible via web browser at `/studio` or through the server management panel.
-  * Create, edit, and fine-tune boss profiles, HP/ATK multipliers, custom loot tables, and announcement banners.
-* **Google Apps Script (GAS) Bridge:**
-  * Background auto-polling poller syncing server configs and live telemetry to Google Sheets.
-  * Perform hot-reloads and execute server commands remotely without server restarts.
+
+* **Smart Center-Screen Announcements:**  
+  * **Apotheosis Top-2 Tier Rule:** Only the top 2 highest gear rarities (**Mythic** and **Ancient** / **Heirloom**) trigger center-screen alerts.
+  * **Artifact & Relic First Discovery:** Celebrating unique artifact drops on their first discovery; duplicate finds remain completely silent.
+* **OmniCore Web Studio:** Embedded and external web dashboard for managing profiles, HP/ATK multipliers, and rules.
+* **Google Apps Script Cloud Sync:** Remote synchronization with Google Sheets for telemetry and hot-reloads without server restarts.
 
 ---
 
-## 🎮 Command Reference
+## 🛠️ Compilation & Installation
 
-| Command | Permission | Description |
-| :--- | :--- | :--- |
-| `/omnicore status` | Everyone | View active World Bosses and Landmark respawn cooldowns |
-| `/omnicore list` | Everyone | List all registered boss profiles in the system |
-| `/omnicore artifacts list` | Everyone | View all unique Artifacts you have discovered so far |
-| `/omnicore artifacts reset` | OP Level 2 | Reset your personal Artifact discovery history (for testing) |
-| `/omnicore promote [radius]` | OP Level 2 | Promote target mob into a permanent Landmark World Boss |
-| `/omnicore respawnnow <id>` | OP Level 2 | Force spawn a Landmark Boss immediately (testing) |
-| `/omnicore system status` | OP Level 2 | Check status of random and natural spawn systems |
-| `/omnicore system random <enable\|disable>` | OP Level 2 | Toggle random boss spawning globally |
-| `/omnicore system promote <enable\|disable>` | OP Level 2 | Toggle natural mob promotion globally |
-| `/omnicore mobs` | OP Level 2 | Scan and dump all registered entities across all mods |
-| `/omnicore reload` | OP Level 2 | Hot-reload boss profiles from `config/omnicore_bosses.json` |
-| `/omnicore clear` | OP Level 2 | Discard all active bosses and arenas immediately |
-| `/pvp [on\|off\|toggle]` | Everyone | Toggle PvP mode (or press `Alt + C`) |
-
-> 📌 **Backward Compatibility Aliases:** The commands `/core`, `/wboss`, and `/dfboss` can be used interchangeably with `/omnicore`.
-
----
-
-## 📁 Project Directory Structure
-
-```
-omnicore/
-├── build.gradle                          # ForgeGradle 6.0 build script
-├── settings.gradle                       # Gradle settings (rootProject.name = 'omnicore')
-├── gradle.properties                     # Mod properties & Forge/MC version mappings
-├── gradlew / gradlew.bat                 # Gradle Wrapper scripts
-├── src/main/java/com/omnicore/
-│   ├── OmniCoreMod.java                  # Main Mod Class & Command Registrations
-│   ├── config/
-│   │   └── OmniConfig.java               # Forge Common Config Spec
-│   ├── server/
-│   │   ├── UniversalBossManager.java     # World Boss, Mob Promoter & Landmark Arena Engine
-│   │   ├── AnnouncementTriggerHandler.java # Loot & Boss Kill Event Interceptor
-│   │   ├── PvPManager.java               # PvP Mode, Free PK & Party Friendly Fire Engine
-│   │   ├── GasHotReloadManager.java      # Google Apps Script Polling Engine
-│   │   └── EmbeddedStudioServer.java     # Embedded Local Web Server (optional)
-│   ├── network/
-│   │   ├── ModNetwork.java               # SimpleChannel Network ("omnicore:main")
-│   │   ├── AnnouncementPacket.java       # Center Banner Packet
-│   │   ├── TogglePvPPacket.java          # Client C2S PvP Toggle Packet (Alt + C)
-│   │   └── WorldBossSyncPacket.java      # Boss HP & Waypoint Sync Packet
-│   └── client/
-│       ├── CenterAnnouncementOverlay.java# Obsidian Banner HUD Overlay
-│       ├── CustomBossBarOverlay.java     # Custom Boss Bar Overlay with Lag Trail
-│       ├── PvPKeyHandler.java            # Client Keybind Alt + C Handler
-│       └── XaeroWaypointBridge.java      # Xaero's World Map & Minimap Integration
-├── web-studio/                           # OmniCore Web Studio frontend (HTML/CSS/JS)
-│   ├── index.html
-│   ├── styles.css
-│   └── app.js
-├── studio-config/                        # Default JSON configuration profiles
-│   ├── config.json
-│   ├── bosses.json
-│   └── announcement_rules.json
-└── google_apps_script/                   # Google Sheets backend code
-    ├── Code.gs
-    └── README_GAS.md
-```
-
----
-
-## 🛠️ Building & Compiling from Source
-
-### Prerequisites
-* **Java Development Kit (JDK) 17** (e.g. Eclipse Adoptium Temurin 17)
-* Internet access (for first-time ForgeGradle dependency resolution)
-
-### Build Commands
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/kankrittapon/DRAGONFRY.git omnicore
 cd omnicore
 
-# Build the mod JAR (Windows PowerShell)
+# Build with Gradle (Java 17)
 $env:JAVA_HOME = "C:\Path\To\jdk-17"
 .\gradlew.bat build -x test
-
-# Build the mod JAR (Linux / macOS)
-export JAVA_HOME="/path/to/jdk-17"
-./gradlew build -x test
 ```
 
-The compiled mod JAR will be generated in `build/libs/omnicore-1.2.0.jar`. Copy this file into your Minecraft server or client `mods/` directory.
+Place the compiled `build/libs/omnicore-1.2.0.jar` into your server's `mods/` directory.
 
 ---
 
 ## 📄 License
-This project is licensed under the **MIT License** — feel free to use, modify, and distribute it in your own modpacks and servers.
+Licensed under the **MIT License**. Free for public and private servers and modpacks.

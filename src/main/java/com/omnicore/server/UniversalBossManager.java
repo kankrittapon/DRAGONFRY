@@ -950,12 +950,8 @@ public class UniversalBossManager {
         // กลยุทธ์สำรอง: สุ่มตามระยะห่างจาก Spawn โลก
         if (targetPos == null) {
             BlockPos spawnCenter = level.getSharedSpawnPos();
-            double angle = random.nextDouble() * Math.PI * 2.0;
             int dist = chosen.minRadius + random.nextInt(Math.max(50, chosen.maxRadius - chosen.minRadius));
-            int x = spawnCenter.getX() + (int) (Math.cos(angle) * dist);
-            int z = spawnCenter.getZ() + (int) (Math.sin(angle) * dist);
-            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-            targetPos = new BlockPos(x, y, z);
+            targetPos = findSafeSurface(level, spawnCenter, dist);
         }
 
         return spawnWorldBossAt(server, chosen, level, targetPos);
@@ -1010,30 +1006,75 @@ public class UniversalBossManager {
     }
 
     /**
-     * ค้นหาพื้นผิวโลกที่ปลอดภัยห่างจากผู้เล่น 500 บล็อก (ระบบกรอง 5 ชั้น — ไม่เกิดในน้ำ ลาวา ถ้ำ หรือหน้าผา)
+     * ค้นหาพื้นผิวโลกที่ปลอดภัยห่างจากผู้เล่นหรือจุดศูนย์กลาง (ระบบ Dimension-Aware กรองอย่างแม่นยำ)
+     * รองรับ Nether (สแกนถ้ำ ไม่ให้ติดเพดาน Bedrock) และ The End (ตรวจสอบเกาะ ไม่ให้ตก Void)
      */
     private BlockPos findSafeSurfaceAroundPlayer(ServerLevel level, ServerPlayer player, int targetDist) {
-        BlockPos pPos = player.blockPosition();
-        for (int attempt = 0; attempt < 16; attempt++) {
+        return findSafeSurface(level, player.blockPosition(), targetDist);
+    }
+
+    private BlockPos findSafeSurface(ServerLevel level, BlockPos center, int targetDist) {
+        boolean isNether = level.dimension().equals(Level.NETHER);
+        boolean isEnd = level.dimension().equals(Level.END);
+
+        for (int attempt = 0; attempt < 24; attempt++) {
             double angle = random.nextDouble() * Math.PI * 2.0;
-            int x = pPos.getX() + (int) (Math.cos(angle) * targetDist);
-            int z = pPos.getZ() + (int) (Math.sin(angle) * targetDist);
+            int x = center.getX() + (int) (Math.cos(angle) * targetDist);
+            int z = center.getZ() + (int) (Math.sin(angle) * targetDist);
             level.getChunk(x >> 4, z >> 4);
-            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-            BlockPos testPos = new BlockPos(x, y, z);
 
-            BlockState surface = level.getBlockState(testPos);
-            BlockState above1 = level.getBlockState(testPos.above(1));
-            BlockState above2 = level.getBlockState(testPos.above(2));
-            BlockState above3 = level.getBlockState(testPos.above(3));
+            if (isNether) {
+                // Nether: สแกนถ้ำลงมาจาก Y=95 ถึง Y=32 ป้องกันเกิดบนหลังคา Bedrock
+                int startY = Math.min(95, level.getMaxBuildHeight() - 32);
+                int minY = Math.max(32, level.getMinBuildHeight() + 8);
+                for (int y = startY; y >= minY; y--) {
+                    BlockPos testPos = new BlockPos(x, y, z);
+                    BlockState surface = level.getBlockState(testPos);
+                    BlockState above1 = level.getBlockState(testPos.above(1));
+                    BlockState above2 = level.getBlockState(testPos.above(2));
+                    BlockState above3 = level.getBlockState(testPos.above(3));
 
-            // กรอง: ห้ามเป็นของเหลว (น้ำ/ลาวา) และด้านบนต้องเป็นอากาศโปร่ง
-            if (!surface.liquid() && above1.isAir() && above2.isAir() && above3.isAir()) {
-                return testPos;
+                    if (!surface.isAir() && !surface.liquid() && !surface.is(Blocks.BEDROCK)
+                            && above1.isAir() && above2.isAir() && above3.isAir()) {
+                        return testPos;
+                    }
+                }
+            } else if (isEnd) {
+                // The End: ตรวจสอบพื้นผิวเกาะ ไม่ให้เกิดเหนือ Void
+                int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                if (y > 20 && y < level.getMaxBuildHeight() - 10) {
+                    BlockPos testPos = new BlockPos(x, y, z);
+                    BlockState surface = level.getBlockState(testPos);
+                    BlockState above1 = level.getBlockState(testPos.above(1));
+                    BlockState above2 = level.getBlockState(testPos.above(2));
+                    BlockState above3 = level.getBlockState(testPos.above(3));
+
+                    if (!surface.isAir() && !surface.liquid() && above1.isAir() && above2.isAir() && above3.isAir()) {
+                        return testPos;
+                    }
+                }
+            } else {
+                // Overworld และมิติอื่นๆ
+                int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                if (y > level.getMinBuildHeight() + 5 && y < level.getMaxBuildHeight() - 10) {
+                    BlockPos testPos = new BlockPos(x, y, z);
+                    BlockState surface = level.getBlockState(testPos);
+                    BlockState above1 = level.getBlockState(testPos.above(1));
+                    BlockState above2 = level.getBlockState(testPos.above(2));
+                    BlockState above3 = level.getBlockState(testPos.above(3));
+
+                    if (!surface.isAir() && !surface.liquid() && above1.isAir() && above2.isAir() && above3.isAir()) {
+                        return testPos;
+                    }
+                }
             }
         }
-        int fallbackY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pPos.getX() + targetDist, pPos.getZ());
-        return new BlockPos(pPos.getX() + targetDist, fallbackY, pPos.getZ());
+
+        if (isNether) {
+            return center.offset(8, 0, 8);
+        }
+        int fallbackY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, center.getX() + 30, center.getZ() + 30);
+        return new BlockPos(center.getX() + 30, Math.max(center.getY(), fallbackY), center.getZ() + 30);
     }
 
     private void applyBossEnhancements(LivingEntity boss, BossProfile profile, Level level) {
@@ -1141,8 +1182,30 @@ public class UniversalBossManager {
     }
 
     private void deliverReward(MinecraftServer server, ServerPlayer player, String itemWithNbt, int count) {
-        if (server == null || player == null) return;
-        String cmd = String.format("give %s %s %d", player.getName().getString(), itemWithNbt, count);
+        if (server == null || player == null || count <= 0) return;
+
+        String itemId = itemWithNbt;
+        int braceIdx = itemWithNbt.indexOf('{');
+        if (braceIdx != -1) {
+            itemId = itemWithNbt.substring(0, braceIdx);
+        }
+
+        ResourceLocation rl = ResourceLocation.tryParse(itemId);
+        String finalItem = itemWithNbt;
+        if (rl == null || !ForgeRegistries.ITEMS.containsKey(rl)) {
+            // Modpack-Agnostic Dynamic Fallback: ปรับเปลี่ยนเป็นไอเทมสากลหากไม่มีม็อดในแพ็กเกจ
+            if (itemId.contains("champion_coin")) {
+                finalItem = "minecraft:diamond";
+            } else if (itemId.contains("lootcrate")) {
+                finalItem = "minecraft:netherite_scrap";
+            } else {
+                finalItem = "minecraft:emerald";
+            }
+            LOGGER.info("[UniversalBossManager] Dynamic Fallback: Item '{}' not found in registry -> rewarded '{}' x{} to {}",
+                    itemId, finalItem, count, player.getName().getString());
+        }
+
+        String cmd = String.format("give %s %s %d", player.getName().getString(), finalItem, count);
         server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withSuppressedOutput(), cmd);
     }
 
@@ -1155,6 +1218,10 @@ public class UniversalBossManager {
         server.getPlayerList().broadcastSystemMessage(
                 Component.literal("§6👑 === [สรุปผลงาน World Boss DPS Leaderboard] ===§r"), false
         );
+
+        boolean hasCrateMod = ForgeRegistries.ITEMS.containsKey(new ResourceLocation("ftbquests", "lootcrate"));
+        boolean hasCoinMod = ForgeRegistries.ITEMS.containsKey(new ResourceLocation("cisco_mod", "champion_coin"));
+        String coinName = hasCoinMod ? "Champion Coin" : "Diamond";
 
         int rank = 1;
         for (Map.Entry<UUID, Float> entry : ranked) {
@@ -1174,17 +1241,20 @@ public class UniversalBossManager {
                     deliverReward(server, p, "ftbquests:lootcrate{type:\"legendary_crate\"}", 1);
                     deliverReward(server, p, "cisco_mod:champion_coin", 3);
                     p.giveExperienceLevels(30);
-                    p.displayClientMessage(Component.literal("§6👑 คุณได้อันดับ 1 (MVP)! รับ 1x Legendary Crate + 3x Champion Coins + 30 EXP Levels!"), false);
+                    String crateTxt = hasCrateMod ? "1x Legendary Crate" : "1x Netherite Scrap";
+                    p.displayClientMessage(Component.literal(String.format("§6👑 คุณได้อันดับ 1 (MVP)! รับ %s + 3x %ss + 30 EXP Levels!", crateTxt, coinName)), false);
                 } else if (rank <= 3) {
                     deliverReward(server, p, "ftbquests:lootcrate{type:\"epic_crate\"}", 1);
                     deliverReward(server, p, "cisco_mod:champion_coin", 2);
                     p.giveExperienceLevels(20);
-                    p.displayClientMessage(Component.literal("§d🥈 คุณได้อันดับ " + rank + "! รับ 1x Epic Crate + 2x Champion Coins + 20 EXP Levels!"), false);
+                    String crateTxt = hasCrateMod ? "1x Epic Crate" : "1x Netherite Scrap";
+                    p.displayClientMessage(Component.literal(String.format("§d🥈 คุณได้อันดับ %d! รับ %s + 2x %ss + 20 EXP Levels!", rank, crateTxt, coinName)), false);
                 } else if (dmg >= 100.0f) {
                     deliverReward(server, p, "ftbquests:lootcrate{type:\"rare_lootcrate\"}", 1);
                     deliverReward(server, p, "cisco_mod:champion_coin", 1);
                     p.giveExperienceLevels(10);
-                    p.displayClientMessage(Component.literal("§b🥉 รางวัลผู้ร่วมสู้! รับ 1x Rare Crate + 1x Champion Coin + 10 EXP Levels!"), false);
+                    String crateTxt = hasCrateMod ? "1x Rare Crate" : "1x Netherite Scrap";
+                    p.displayClientMessage(Component.literal(String.format("§b🥉 รางวัลผู้ร่วมสู้! รับ %s + 1x %s + 10 EXP Levels!", crateTxt, coinName)), false);
                 }
             }
             rank++;
@@ -1286,7 +1356,9 @@ public class UniversalBossManager {
             if (event.getSource().getEntity() instanceof ServerPlayer killerPlayer) {
                 deliverReward(server, killerPlayer, "cisco_mod:champion_coin", 1);
                 deliverReward(server, killerPlayer, "minecraft:netherite_scrap", 2);
-                killerPlayer.displayClientMessage(Component.literal("§e🗡️ โบนัสสังหารปิดฉากบอส (Last-Hit): รับ 1x Champion Coin + 2x Netherite Scrap!"), false);
+                boolean hasCoinMod = ForgeRegistries.ITEMS.containsKey(new ResourceLocation("cisco_mod", "champion_coin"));
+                String coinName = hasCoinMod ? "Champion Coin" : "Diamond";
+                killerPlayer.displayClientMessage(Component.literal("§e🗡️ โบนัสสังหารปิดฉากบอส (Last-Hit): รับ 1x " + coinName + " + 2x Netherite Scrap!"), false);
             }
 
             // คำนวณและแจกของรางวัลตามอันดับ DPS Leaderboard

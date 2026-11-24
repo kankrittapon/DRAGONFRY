@@ -25,9 +25,19 @@ public class PvPKeyHandler {
             "key.categories.omnicore"
     );
 
+    public static final KeyMapping CURSOR_KEY = new KeyMapping(
+            "key.omnicore.cursor_screen",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.NONE,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_LEFT_CONTROL,
+            "key.categories.omnicore"
+    );
+
     @SubscribeEvent
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(TOGGLE_PVP_KEY);
+        event.register(CURSOR_KEY);
     }
 
     @Mod.EventBusSubscriber(modid = "omnicore", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
@@ -35,11 +45,22 @@ public class PvPKeyHandler {
         @SubscribeEvent
         public static void onKeyInput(InputEvent.Key event) {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null || mc.screen != null) return;
+            if (mc.player == null) return;
 
-            while (TOGGLE_PVP_KEY.consumeClick()) {
-                ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
+            // Alt+C: สลับโหมด PvP ทันที
+            if (mc.screen == null) {
+                while (TOGGLE_PVP_KEY.consumeClick()) {
+                    ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
+                }
+            }
+
+            // Ctrl: ปลดล็อกเคอร์เซอร์เมาส์ด้วย Transparent Cursor Screen
+            if (event.getAction() == GLFW.GLFW_PRESS) {
+                if (mc.screen == null && CURSOR_KEY.matches(event.getKey(), event.getScanCode())) {
+                    mc.setScreen(new PvPCursorScreen());
+                }
             }
         }
     }
 }
+

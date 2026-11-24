@@ -98,5 +98,6 @@ public class CenterAnnouncementOverlay {
     public static void onRegisterOverlays(RegisterGuiOverlaysEvent event) {
         event.registerAboveAll("center_announcement_banner", HUD_BANNER);
         event.registerAboveAll("custom_world_boss_bar", CustomBossBarOverlay.BOSS_BAR);
+        event.registerAboveAll("omnicore_pvp_hud", PvPHudOverlay.PVP_HUD);
     }
 }
