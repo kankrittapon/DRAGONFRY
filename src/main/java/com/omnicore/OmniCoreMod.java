@@ -185,7 +185,7 @@ public class OmniCoreMod {
                             return ok ? 1 : 0;
                         })))
                 .then(Commands.literal("promote")
-                    .then(Commands.argument("radius", IntegerArgumentType.integer(10, 500))
+                    .then(Commands.argument("radius", IntegerArgumentType.integer(5, 500))
                         .executes(ctx -> {
                             ServerPlayer sp = ctx.getSource().getPlayerOrException();
                             int rad = IntegerArgumentType.getInteger(ctx, "radius");
@@ -213,7 +213,7 @@ public class OmniCoreMod {
                             ctx.getSource().sendFailure(Component.literal("§cไม่พบม็อบในระยะ 15 บล็อก กรุณาเข้าใกล้ม็อบที่ต้องการโปรโมต"));
                             return 0;
                         }
-                        UniversalBossManager.PromoteResult res = UniversalBossManager.INSTANCE.promoteExistingEntity(target, 80);
+                        UniversalBossManager.PromoteResult res = UniversalBossManager.INSTANCE.promoteExistingEntity(target, 0);
                         if (res.success) {
                             ctx.getSource().sendSuccess(() -> Component.literal("§a" + res.message), true);
                         } else {

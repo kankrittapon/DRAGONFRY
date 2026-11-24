@@ -137,9 +137,9 @@ public class UniversalBossManager {
             this.anchorX = anchorX;
             this.anchorY = anchorY;
             this.anchorZ = anchorZ;
-            this.anchorRadius = anchorRadius > 0 ? anchorRadius : 60;
+            this.anchorRadius = anchorRadius > 0 ? anchorRadius : 30;
             this.antiGriefEnabled = antiGriefEnabled;
-            this.protectRadius = protectRadius > 0 ? protectRadius : 500;
+            this.protectRadius = protectRadius > 0 ? protectRadius : 30;
             this.scheduleHours = scheduleHours != null ? scheduleHours : "";
             this.nativeBossBar = nativeBossBar;
             this.raidScaling = raidScaling;
@@ -239,9 +239,13 @@ public class UniversalBossManager {
     public volatile float globalHpScale = 1.0f;
     public volatile float globalAtkScale = 1.0f;
     public volatile String activeBarTheme = "DRAGON_GOLD";
+    public volatile int arenaRadius = 30;
+    public volatile int bossLeashDistance = 8;
+    public volatile int defaultSpawnIntervalMinutes = 120;
+    public volatile int landmarkRespawnCooldownMinutes = 120;
 
     private long tickCounter = 0L;
-    private long nextScheduledSpawnMs = System.currentTimeMillis() + 60_000L * 15L;
+    private long nextScheduledSpawnMs = System.currentTimeMillis() + 60_000L * 60L;
     private String lastExecutedClockMinute = "";
 
     public int getActiveBossCount() {
@@ -259,6 +263,11 @@ public class UniversalBossManager {
             globalHpScale = OmniConfig.INSTANCE.globalBossHpScale.get().floatValue();
             globalAtkScale = OmniConfig.INSTANCE.globalBossAtkScale.get().floatValue();
             activeBarTheme = OmniConfig.INSTANCE.bossBarTheme.get();
+            arenaRadius = OmniConfig.INSTANCE.arenaRadius.get();
+            bossLeashDistance = OmniConfig.INSTANCE.bossLeashDistance.get();
+            defaultSpawnIntervalMinutes = OmniConfig.INSTANCE.defaultSpawnIntervalMinutes.get();
+            landmarkRespawnCooldownMinutes = OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes.get();
+            nextScheduledSpawnMs = System.currentTimeMillis() + defaultSpawnIntervalMinutes * 60_000L;
         } catch (Exception ignored) {}
 
         File configFile = new File("config/omnicore_bosses.json");
@@ -271,27 +280,27 @@ public class UniversalBossManager {
         registry.clear();
         // 1. Ignis (Cataclysm) — ใช้หลอดเลือดเดิมของบอส (nativeBossBar = true), แนะนำล็อก Anchor ที่ Burning Arena หรือเกิด 500m
         register(new BossProfile("Ignis, Lord of Dragonfyre", "cataclysm:ignis", "Cisco Dragonfyre", "BOTH",
-                100, 3.5f, 2.0f, 14.0f, 1.15f, 60, 20, 300, 1500, "minecraft:overworld",
+                100, 3.5f, 2.0f, 14.0f, 1.15f, defaultSpawnIntervalMinutes, 20, 300, 1500, "minecraft:overworld",
                 true, true, "FIRE_NOVA,ENRAGED", "give @p minecraft:netherite_ingot 5", true,
-                "ANCHOR_LANDMARK", 0, 0, 0, 80, true, 500, "18:00,21:00", true, true));
+                "ANCHOR_LANDMARK", 0, 0, 0, arenaRadius, true, arenaRadius, "18:00,21:00", true, true));
 
         // 2. Netherite Monstrosity (Cataclysm) — ใช้หลอดเลือดเดิม (nativeBossBar = true), เกิดห่างผู้เล่น 500m ปลอดภัย
         register(new BossProfile("Netherite Monstrosity", "cataclysm:netherite_monstrosity", "Cisco Ultimate", "SCHEDULED_WORLD_BOSS",
-                100, 4.0f, 1.9f, 18.0f, 1.1f, 75, 25, 350, 1600, "minecraft:overworld",
+                100, 4.0f, 1.9f, 18.0f, 1.1f, defaultSpawnIntervalMinutes, 25, 350, 1600, "minecraft:overworld",
                 true, true, "IRON_SKIN,FIRE_NOVA", "give @p minecraft:diamond_block 3", true,
-                "PLAYER_RELATIVE_500M", 0, 0, 0, 60, true, 500, "20:00", true, true));
+                "PLAYER_RELATIVE_500M", 0, 0, 0, arenaRadius, true, arenaRadius, "20:00", true, true));
 
         // 3. Crimson Elder Fire Dragon (Ice & Fire) — ใช้หลอดเลือดเดิม
         register(new BossProfile("Crimson Elder Fire Dragon", "iceandfire:fire_dragon", "Ice & Fire", "SCHEDULED_WORLD_BOSS",
-                100, 2.8f, 1.8f, 12.0f, 1.1f, 90, 25, 400, 1800, "minecraft:overworld",
+                100, 2.8f, 1.8f, 12.0f, 1.1f, defaultSpawnIntervalMinutes, 25, 400, 1800, "minecraft:overworld",
                 true, true, "FIRE_NOVA,LIGHTNING_CALLER", "give @p minecraft:enchanted_golden_apple 2", true,
-                "PLAYER_RELATIVE_500M", 0, 0, 0, 60, true, 500, "", true, true));
+                "PLAYER_RELATIVE_500M", 0, 0, 0, arenaRadius, true, arenaRadius, "", true, true));
 
         // 4. Ferrous Wroughtnaut Apex (Mowzie's) — ใช้หลอดเลือดเดิม
         register(new BossProfile("Ferrous Wroughtnaut Apex", "mowziesmobs:ferrous_wroughtnaut", "Mowzie's Mobs", "AUTO_PROMOTE_NATURAL",
-                100, 2.5f, 1.6f, 16.0f, 1.2f, 45, 15, 200, 1000, "minecraft:overworld",
+                100, 2.5f, 1.6f, 16.0f, 1.2f, defaultSpawnIntervalMinutes, 15, 200, 1000, "minecraft:overworld",
                 true, true, "IRON_SKIN,ENRAGED", "give @p minecraft:netherite_scrap 4", true,
-                "DYNAMIC_BIOME", 0, 0, 0, 60, true, 500, "", true, true));
+                "DYNAMIC_BIOME", 0, 0, 0, arenaRadius, true, arenaRadius, "", true, true));
 
         saveRegistryToFile();
     }
@@ -318,7 +327,7 @@ public class UniversalBossManager {
                             o.has("attackMultiplier") ? o.get("attackMultiplier").getAsFloat() : 1.8f,
                             o.has("armorBonus") ? o.get("armorBonus").getAsFloat() : 10.0f,
                             o.has("speedMultiplier") ? o.get("speedMultiplier").getAsFloat() : 1.15f,
-                            o.has("spawnIntervalMinutes") ? o.get("spawnIntervalMinutes").getAsInt() : 45,
+                            o.has("spawnIntervalMinutes") ? o.get("spawnIntervalMinutes").getAsInt() : defaultSpawnIntervalMinutes,
                             o.has("fightDurationMinutes") ? o.get("fightDurationMinutes").getAsInt() : 20,
                             o.has("minSpawnRadius") ? o.get("minSpawnRadius").getAsInt() : 250,
                             o.has("maxSpawnRadius") ? o.get("maxSpawnRadius").getAsInt() : 1400,
@@ -332,9 +341,9 @@ public class UniversalBossManager {
                             o.has("anchorX") ? o.get("anchorX").getAsInt() : 0,
                             o.has("anchorY") ? o.get("anchorY").getAsInt() : 0,
                             o.has("anchorZ") ? o.get("anchorZ").getAsInt() : 0,
-                            o.has("anchorRadius") ? o.get("anchorRadius").getAsInt() : 80,
+                            o.has("anchorRadius") ? o.get("anchorRadius").getAsInt() : arenaRadius,
                             o.has("antiGriefEnabled") ? o.get("antiGriefEnabled").getAsBoolean() : true,
-                            o.has("protectRadius") ? o.get("protectRadius").getAsInt() : 500,
+                            o.has("protectRadius") ? o.get("protectRadius").getAsInt() : arenaRadius,
                             o.has("scheduleHours") ? o.get("scheduleHours").getAsString() : "",
                             o.has("nativeBossBar") ? o.get("nativeBossBar").getAsBoolean() : true,
                             o.has("raidScaling") ? o.get("raidScaling").getAsBoolean() : true
@@ -468,29 +477,32 @@ public class UniversalBossManager {
         // 🔒 ข้อจำกัดที่ 2: ม็อบ 1 ชนิด สามารถล็อกได้เพียง 1 Landmark Area เท่านั้น
         // -------------------------------------------------------------
         BossProfile p = findBossProfile(entityId);
-        int finalRadius = anchorRadius > 0 ? anchorRadius : (p != null && p.anchorRadius > 0 ? p.anchorRadius : 80);
+        int defaultRad = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.arenaRadius != null ? OmniConfig.INSTANCE.arenaRadius.get() : arenaRadius;
+        int finalRadius = anchorRadius > 0 ? anchorRadius : (p != null && p.anchorRadius > 0 ? p.anchorRadius : defaultRad);
 
         if (p != null && "ANCHOR_LANDMARK".equals(p.spawnStrategy) && (p.anchorX != 0 || p.anchorZ != 0)) {
             double dx = living.getBlockX() - p.anchorX;
             double dz = living.getBlockZ() - p.anchorZ;
             double distSq = dx * dx + dz * dz;
-            int existingRadius = p.anchorRadius > 0 ? p.anchorRadius : 80;
+            int existingRadius = p.anchorRadius > 0 ? p.anchorRadius : defaultRad;
 
             // หากจุดที่ผู้เล่นต้องการโปรโมต อยู่นอกพื้นที่แลนด์มาร์กเดิมเกินระยะรัศมี
             if (distSq > (existingRadius * (double) existingRadius)) {
                 return new PromoteResult(false, String.format(
-                        "ม็อบชนิด '%s' ถูกล็อกเป็น Landmark Area ไว้แล้วที่ (%d, %d, %d) รัศมี %d บล็อก! (1 ม็อบสามารถมีได้เพียง 1 Area เท่านั้น ไม่สามารถสร้างซ้ำได้ หากต้องการย้ายจุด กรุณาใช้คำสั่ง /dfboss anchor clear %s ก่อน)",
+                        "ม็อบชนิด '%s' ถูกล็อกเป็น Landmark Area ไว้แล้วที่ (%d, %d, %d) รัศมี %d บล็อก! (1 ม็อบสามารถมีได้เพียง 1 Area เท่านั้น ไม่สามารถสร้างซ้ำได้ หากต้องการย้ายจุด กรุณาใช้คำสั่ง /omnicore anchor clear %s ก่อน)",
                         entityId, p.anchorX, p.anchorY, p.anchorZ, existingRadius, entityId));
             }
         }
 
         if (p == null) {
             String name = living.getType().getDescription().getString();
+            int defaultCooldown = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes != null ?
+                    OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes.get() : landmarkRespawnCooldownMinutes;
             p = new BossProfile("Ancient " + name, entityId, key.getNamespace(), "BOTH",
-                    100, 3.0f, 1.8f, 14.0f, 1.1f, 60, 25, 300, 1500, living.level().dimension().location().toString(),
+                    100, 3.0f, 1.8f, 14.0f, 1.1f, defaultCooldown, 25, 300, 1500, living.level().dimension().location().toString(),
                     true, true, "IRON_SKIN,ENRAGED", "give @p cisco_mod:champion_coin 2", true,
                     "ANCHOR_LANDMARK", living.getBlockX(), living.getBlockY(), living.getBlockZ(), finalRadius,
-                    true, 500, "", true, true);
+                    true, finalRadius, "", true, true);
             register(p);
         } else {
             p.spawnStrategy = "ANCHOR_LANDMARK";
@@ -498,6 +510,7 @@ public class UniversalBossManager {
             p.anchorY = living.getBlockY();
             p.anchorZ = living.getBlockZ();
             p.anchorRadius = finalRadius;
+            p.protectRadius = finalRadius;
         }
         saveRegistryToFile();
 
@@ -507,6 +520,11 @@ public class UniversalBossManager {
         long expire = System.currentTimeMillis() + p.fightDurationMinutes * 60_000L;
         BlockPos origin = living.blockPosition();
         activeBosses.put(living.getUUID(), new ActiveBoss(living.getUUID(), p, living.level().dimension(), expire, origin));
+
+        int leash = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.bossLeashDistance != null ? OmniConfig.INSTANCE.bossLeashDistance.get() : bossLeashDistance;
+        if (living instanceof Mob mob && leash > 0) {
+            mob.restrictTo(origin, leash);
+        }
 
         if (p.antiGriefEnabled && finalRadius > 0) {
             activeArenas.put(living.getUUID(), new ArenaZone(living.getUUID(), living.level().dimension(), origin, finalRadius, expire));
@@ -862,9 +880,16 @@ public class UniversalBossManager {
             BlockPos origin = living.blockPosition();
             activeBosses.put(living.getUUID(), new ActiveBoss(living.getUUID(), profile, event.getLevel().dimension(), expire, origin));
 
-            // เปิดบาเรียสนามประลองห้ามขุด รัศมี 500 บล็อก
-            if (profile.antiGriefEnabled && profile.protectRadius > 0) {
-                activeArenas.put(living.getUUID(), new ArenaZone(living.getUUID(), event.getLevel().dimension(), origin, profile.protectRadius, expire));
+            int effectiveRad = profile.anchorRadius > 0 ? profile.anchorRadius :
+                    (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.arenaRadius != null ? OmniConfig.INSTANCE.arenaRadius.get() : arenaRadius);
+            if (profile.antiGriefEnabled && effectiveRad > 0) {
+                activeArenas.put(living.getUUID(), new ArenaZone(living.getUUID(), event.getLevel().dimension(), origin, effectiveRad, expire));
+            }
+
+            int leash = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.bossLeashDistance != null ?
+                    OmniConfig.INSTANCE.bossLeashDistance.get() : bossLeashDistance;
+            if (living instanceof Mob mob && leash > 0) {
+                mob.restrictTo(origin, leash);
             }
             LOGGER.info("[OmniCore] ⚔️ Auto-Promoted {} to World Boss '{}' at pos [{}, {}, {}] in {}",
                     key, profile.displayName, origin.getX(), origin.getY(), origin.getZ(), dimId);
@@ -885,7 +910,10 @@ public class UniversalBossManager {
             chosen = findBossProfile(requestedEntityId);
         } else {
             List<BossProfile> candidates = registry.values().stream()
-                    .filter(p -> p.enabled && ("SCHEDULED_WORLD_BOSS".equals(p.bossMode) || "BOTH".equals(p.bossMode)))
+                    .filter(p -> p.enabled 
+                            && !"ANCHOR_LANDMARK".equals(p.spawnStrategy)
+                            && ("SCHEDULED_WORLD_BOSS".equals(p.bossMode) || "BOTH".equals(p.bossMode)))
+                    .filter(p -> activeBosses.values().stream().noneMatch(ab -> ab.profile.entityId.equalsIgnoreCase(p.entityId)))
                     .toList();
             if (!candidates.isEmpty()) chosen = candidates.get(random.nextInt(candidates.size()));
         }
@@ -959,9 +987,16 @@ public class UniversalBossManager {
         long expire = System.currentTimeMillis() + chosen.fightDurationMinutes * 60_000L;
         activeBosses.put(living.getUUID(), new ActiveBoss(living.getUUID(), chosen, level.dimension(), expire, targetPos));
 
-        // เปิดบาเรีย Anti-Grief 500 บล็อก
-        if (chosen.antiGriefEnabled && chosen.protectRadius > 0) {
-            activeArenas.put(living.getUUID(), new ArenaZone(living.getUUID(), level.dimension(), targetPos, chosen.protectRadius, expire));
+        int effectiveRadius = chosen.anchorRadius > 0 ? chosen.anchorRadius :
+                (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.arenaRadius != null ? OmniConfig.INSTANCE.arenaRadius.get() : arenaRadius);
+        if (chosen.antiGriefEnabled && effectiveRadius > 0) {
+            activeArenas.put(living.getUUID(), new ArenaZone(living.getUUID(), level.dimension(), targetPos, effectiveRadius, expire));
+        }
+
+        int leash = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.bossLeashDistance != null ?
+                OmniConfig.INSTANCE.bossLeashDistance.get() : bossLeashDistance;
+        if (living instanceof Mob mob && leash > 0) {
+            mob.restrictTo(targetPos, leash);
         }
 
         AnnouncementTriggerHandler.broadcastBossSpawn(chosen.displayName, targetPos, chosen.fightDurationMinutes);
@@ -1209,8 +1244,9 @@ public class UniversalBossManager {
 
                 BlockPos bCenter = az.center;
                 double angle = Math.atan2(player.getZ() - bCenter.getZ(), player.getX() - bCenter.getX());
-                int rx = bCenter.getX() + (int) (Math.cos(angle) * 35.0);
-                int rz = bCenter.getZ() + (int) (Math.sin(angle) * 35.0);
+                int safeDist = az.radius + 3;
+                int rx = bCenter.getX() + (int) (Math.cos(angle) * safeDist);
+                int rz = bCenter.getZ() + (int) (Math.sin(angle) * safeDist);
                 ServerLevel sl = player.serverLevel();
                 int ry = sl.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, rx, rz);
                 arenaDeathRespawns.put(player.getUUID(), new BlockPos(rx, ry, rz));
@@ -1223,15 +1259,18 @@ public class UniversalBossManager {
         // 2. World Boss ถูกกำจัด
         UUID id = event.getEntity().getUUID();
         ActiveBoss ab = activeBosses.remove(id);
-        activeArenas.remove(id); // ถอนบาเรีย Anti-Grief 500 บล็อกทันที
+        activeArenas.remove(id); // ถอนบาเรีย Anti-Grief ทันที
         if (ab == null) return;
 
         // บันทึกเวลาเกิดใหม่ของ Landmark Area รอบถัดไป
         if ("ANCHOR_LANDMARK".equals(ab.profile.spawnStrategy)) {
-            long cooldownMs = Math.max(5, ab.profile.spawnIntervalMinutes) * 60_000L;
+            int cooldownMin = ab.profile.spawnIntervalMinutes > 0 ? ab.profile.spawnIntervalMinutes :
+                    (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes != null ?
+                            OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes.get() : landmarkRespawnCooldownMinutes);
+            long cooldownMs = Math.max(10, cooldownMin) * 60_000L;
             nextRespawnTimeByProfile.put(ab.profile.entityId.toLowerCase(Locale.ROOT), System.currentTimeMillis() + cooldownMs);
             LOGGER.info("[UniversalBossManager] ⏳ Landmark World Boss '{}' will respawn at ({}, {}, {}) in {} minutes",
-                    ab.profile.displayName, ab.profile.anchorX, ab.profile.anchorY, ab.profile.anchorZ, ab.profile.spawnIntervalMinutes);
+                    ab.profile.displayName, ab.profile.anchorX, ab.profile.anchorY, ab.profile.anchorZ, cooldownMin);
         }
 
         sendRemovePacket(ab);
@@ -1283,8 +1322,9 @@ public class UniversalBossManager {
         // สุ่มเกิด World Boss ตามรอบนาที (Interval)
         if (worldBossSystemEnabled && tickCounter % 200 == 0 && System.currentTimeMillis() >= nextScheduledSpawnMs && activeBosses.isEmpty()) {
             spawnWorldBossNow(server, null, null);
-            int intervalMin = registry.values().stream().filter(p -> p.enabled).mapToInt(p -> p.spawnIntervalMinutes).min().orElse(45);
-            nextScheduledSpawnMs = System.currentTimeMillis() + intervalMin * 60_000L;
+            int intervalMin = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.defaultSpawnIntervalMinutes != null ?
+                    OmniConfig.INSTANCE.defaultSpawnIntervalMinutes.get() : defaultSpawnIntervalMinutes;
+            nextScheduledSpawnMs = System.currentTimeMillis() + Math.max(10, intervalMin) * 60_000L;
         }
 
         // ตรวจสอบการเกิดซ้ำอัตโนมัติของ Landmark Area แต่ละโซน (Independent Landmark Respawns)
@@ -1297,8 +1337,11 @@ public class UniversalBossManager {
                             .anyMatch(active -> active.profile.entityId.equalsIgnoreCase(bp.entityId));
                     if (!isAlive) {
                         Long nextSpawn = nextRespawnTimeByProfile.get(pKey);
+                        int cooldownMin = bp.spawnIntervalMinutes > 0 ? bp.spawnIntervalMinutes :
+                                (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes != null ?
+                                        OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes.get() : landmarkRespawnCooldownMinutes);
+                        long cooldownMs = Math.max(10, cooldownMin) * 60_000L;
                         if (nextSpawn == null) {
-                            long cooldownMs = Math.max(5, bp.spawnIntervalMinutes) * 60_000L;
                             nextRespawnTimeByProfile.put(pKey, nowMs + cooldownMs);
                         } else if (nowMs >= nextSpawn) {
                             nextRespawnTimeByProfile.remove(pKey);
@@ -1354,10 +1397,13 @@ public class UniversalBossManager {
                 activeArenas.remove(ab.uuid);
 
                 if ("ANCHOR_LANDMARK".equals(ab.profile.spawnStrategy)) {
-                    long cooldownMs = Math.max(5, ab.profile.spawnIntervalMinutes) * 60_000L;
+                    int cooldownMin = ab.profile.spawnIntervalMinutes > 0 ? ab.profile.spawnIntervalMinutes :
+                            (OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes != null ?
+                                    OmniConfig.INSTANCE.landmarkRespawnCooldownMinutes.get() : landmarkRespawnCooldownMinutes);
+                    long cooldownMs = Math.max(10, cooldownMin) * 60_000L;
                     nextRespawnTimeByProfile.put(ab.profile.entityId.toLowerCase(Locale.ROOT), now + cooldownMs);
                     LOGGER.info("[UniversalBossManager] ⏳ Landmark World Boss '{}' expired. Will respawn in {} minutes",
-                            ab.profile.displayName, ab.profile.spawnIntervalMinutes);
+                            ab.profile.displayName, cooldownMin);
                 }
                 continue;
             }
@@ -1365,14 +1411,58 @@ public class UniversalBossManager {
             BlockPos pos = living.blockPosition();
 
             // ----------------------------------------------------
+            // ⛓️ Boss Leash & Anchor Tethering Engine (บอสไม่ออกจากจุดเกิดเกิน leashLimit บล็อก)
+            // ----------------------------------------------------
+            int leashLimit = OmniConfig.INSTANCE != null && OmniConfig.INSTANCE.bossLeashDistance != null ?
+                    OmniConfig.INSTANCE.bossLeashDistance.get() : bossLeashDistance;
+            if (leashLimit > 0 && ab.spawnOrigin != null) {
+                double dx = living.getX() - (ab.spawnOrigin.getX() + 0.5);
+                double dy = living.getY() - ab.spawnOrigin.getY();
+                double dz = living.getZ() - (ab.spawnOrigin.getZ() + 0.5);
+                double horizDistSq = dx * dx + dz * dz;
+                double maxLeashSq = leashLimit * (double) leashLimit;
+
+                // หากบอสหลุดออกจากจุดเกิดเกิน leashLimit บล็อก (ทั้งแนวนอน และแนวตั้ง)
+                if (horizDistSq > maxLeashSq || Math.abs(dy) > leashLimit + 3) {
+                    double pullX = ab.spawnOrigin.getX() + 0.5;
+                    double pullY = ab.spawnOrigin.getY();
+                    double pullZ = ab.spawnOrigin.getZ() + 0.5;
+
+                    living.teleportTo(pullX, pullY, pullZ);
+                    living.setDeltaMovement(0, 0, 0);
+
+                    if (living instanceof Mob mob) {
+                        mob.restrictTo(ab.spawnOrigin, leashLimit);
+                        mob.getNavigation().moveTo(pullX, pullY, pullZ, 1.25);
+
+                        // เคลียร์เป้าหมายหากผู้เล่นเป้าหมายหนีออกนอกสนามประลอง
+                        LivingEntity target = mob.getTarget();
+                        if (target != null) {
+                            ArenaZone az = getActiveArena(level.dimension(), target.blockPosition());
+                            if (az == null) {
+                                mob.setTarget(null);
+                            }
+                        }
+                    }
+
+                    if (level != null) {
+                        level.sendParticles(ParticleTypes.PORTAL, pullX, pullY + 1.0, pullZ, 25, 0.5, 0.8, 0.5, 0.1);
+                        level.sendParticles(ParticleTypes.SMOKE, living.getX(), living.getY() + 0.5, living.getZ(), 15, 0.4, 0.4, 0.4, 0.02);
+                    }
+                }
+            }
+
+            // ----------------------------------------------------
             // 🔮 Universal Boss Skills Engine
             // ----------------------------------------------------
             float hpRatio = living.getHealth() / Math.max(1.0f, living.getMaxHealth());
 
-            // 1. Ender Shift (Teleport): เมื่อผู้เล่นเป้าหมายอยู่ไกลเกิน 16 บล็อก
+            // 1. Ender Shift (Teleport): เมื่อผู้เล่นเป้าหมายอยู่ไกลเกิน 16 บล็อก และอยู่ในระยะ Leash
             if ((ab.profile.affixTraits.contains("ENDER_SHIFT") || !ab.profile.nativeBossBar) && living instanceof Mob mob && level != null) {
                 if (mob.getTarget() instanceof ServerPlayer target && (now - ab.lastTeleportMs > 15_000L)) {
-                    if (mob.distanceToSqr(target) > 16.0 * 16.0) {
+                    double tdx = target.getX() - (ab.spawnOrigin.getX() + 0.5);
+                    double tdz = target.getZ() - (ab.spawnOrigin.getZ() + 0.5);
+                    if (mob.distanceToSqr(target) > 16.0 * 16.0 && (tdx * tdx + tdz * tdz) <= (leashLimit * (double) leashLimit)) {
                         ab.lastTeleportMs = now;
                         double tx = target.getX() - target.getLookAngle().x * 2.5;
                         double tz = target.getZ() - target.getLookAngle().z * 2.5;

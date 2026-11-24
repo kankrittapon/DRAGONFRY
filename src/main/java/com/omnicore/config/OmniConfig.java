@@ -18,6 +18,10 @@ public class OmniConfig {
     public final ForgeConfigSpec.BooleanValue autoPromoteEnabled;
     public final ForgeConfigSpec.DoubleValue globalBossHpScale;
     public final ForgeConfigSpec.DoubleValue globalBossAtkScale;
+    public final ForgeConfigSpec.IntValue arenaRadius;
+    public final ForgeConfigSpec.IntValue bossLeashDistance;
+    public final ForgeConfigSpec.IntValue defaultSpawnIntervalMinutes;
+    public final ForgeConfigSpec.IntValue landmarkRespawnCooldownMinutes;
     public final ForgeConfigSpec.IntValue defaultProtectRadius;
     public final ForgeConfigSpec.IntValue raidScalePercentPerPlayer;
     public final ForgeConfigSpec.ConfigValue<String> bossBarTheme;
@@ -87,9 +91,25 @@ public class OmniConfig {
                 .comment("ตัวคูณพลังโจมตีรวมสำหรับบอสทั้งหมด (Global ATK Multiplier)")
                 .defineInRange("globalBossAtkScale", 1.0, 0.1, 100.0);
 
+        arenaRadius = builder
+                .comment("รัศมีของสนามประลอง World Boss รอบตัวบอส (Arena Radius in blocks, default: 30)")
+                .defineInRange("arenaRadius", 30, 5, 500);
+
+        bossLeashDistance = builder
+                .comment("ระยะจำกัดไม่ให้บอสเดิน/บินหลุดออกจากจุดเกิด (Boss Leash Distance in blocks from spawn origin, default: 8)")
+                .defineInRange("bossLeashDistance", 8, 2, 100);
+
+        defaultSpawnIntervalMinutes = builder
+                .comment("ระยะเวลาระหว่างการสุ่มเกิดของ World Boss แต่ละรอบ (นาที) - Default Spawn Interval in minutes, default: 120)")
+                .defineInRange("defaultSpawnIntervalMinutes", 120, 5, 1440);
+
+        landmarkRespawnCooldownMinutes = builder
+                .comment("ระยะเวลารอเกิดใหม่ของบอสประจำ Landmark หลังจากบอสตายหรือหมดเวลา (นาที) - Landmark Respawn Cooldown in minutes, default: 120)")
+                .defineInRange("landmarkRespawnCooldownMinutes", 120, 5, 1440);
+
         defaultProtectRadius = builder
                 .comment("รัศมีบาเรียห้ามขุด/ระเบิดทำลายฉากเริ่มต้น (Anti-Grief Arena Radius in blocks)")
-                .defineInRange("defaultProtectRadius", 500, 10, 2000);
+                .defineInRange("defaultProtectRadius", 30, 5, 2000);
 
         raidScalePercentPerPlayer = builder
                 .comment("เปอร์เซ็นต์เลือดที่เพิ่มขึ้นต่อผู้เล่น 1 คนในระยะ 40m (Raid Dynamic Scaling %)")
