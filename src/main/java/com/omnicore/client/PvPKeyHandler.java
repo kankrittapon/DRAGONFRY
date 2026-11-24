@@ -10,6 +10,7 @@ import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
@@ -42,6 +43,17 @@ public class PvPKeyHandler {
 
     @Mod.EventBusSubscriber(modid = "omnicore", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
     public static class ForgeClientEvents {
+        @SubscribeEvent
+        public static void onClientTick(TickEvent.ClientTickEvent event) {
+            if (event.phase != TickEvent.Phase.END) return;
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null || mc.screen != null) return;
+
+            while (TOGGLE_PVP_KEY.consumeClick()) {
+                ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
+            }
+        }
+
         @SubscribeEvent
         public static void onKeyInput(InputEvent.Key event) {
             Minecraft mc = Minecraft.getInstance();
