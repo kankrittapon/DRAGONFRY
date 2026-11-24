@@ -8,7 +8,15 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.AreaEffectCloud;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.TraceableEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -18,6 +26,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +38,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * 2. สถานะ PvP (PvP ON): สัญลักษณ์สีแดงรวมกับชื่อ (§c⚔ [PvP] PlayerName)
  * 3. สถานะ Free PK (🗡️): เมื่อเริ่มโจมตีผู้เล่น จะติดสัญลักษณ์ดาบ 45 วินาที กลายเป็น Free PK (ทุกคนสามารถรุมตีได้)
  * 4. เมื่อครบ 45 วินาที: หลุดจากสถานะ PK สัญลักษณ์ดาบหายไป กลับมาเป็นสีแดงหน้าชื่อตามปกติ
- * 5. ป้องกัน Friendly Fire สำหรับสมาชิกปาร์ตี้ (FTB Teams & Vanilla Teams) ตีกันไม่ได้เด็ดขาด
+ * 5. ป้องกัน Friendly Fire สำหรับสมาชิกปาร์ตี้ (FTB Teams & Vanilla Teams) ตีกันไม่ได้เด็ดขาด 100%
+ * 6. รองรับการป้องกันดาเมจทุกรูปแบบ: Melee, ลูกธนู, เวทมนตร์/กระสุนเวท (Iron's Spells),
+ *    สกิลพื้นที่ (AOE / Lingering Clouds), ซัมมอน/มินเนียน (IMagicSummon, Vex, Zombie),
+ *    สัตว์เลี้ยง (Tamable/Ownable), สายฟ้า, และสกิลพลังจาก Origins / Origins++
  */
 public class PvPManager {
     public static final PvPManager INSTANCE = new PvPManager();
@@ -172,6 +184,172 @@ public class PvPManager {
     }
 
     /* ------------------------------------------------------------------ */
+    /* 🔍 Attacker & Owner Resolution Engine                              */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * ค้นหาผู้เล่นที่เป็นต้นตอของความเสียหาย (Attacker Root Player)
+     * รองรับความเสียหายทุกรูปแบบ ทั้งการโจมตีปกติและเวทมนตร์/สกิลจาก Mod:
+     * 1. การโจมตีประชิด / ยิงธนู / ปาตรีศูล
+     * 2. เวทมนตร์ลูกศร/กระสุนเวท (Iron's Spells: Fireball, Magic Missile, Icicle, Ray)
+     * 3. เวทมนตร์พื้นที่ / หมอกพิษ / พลังงานตกค้าง (Iron's Spells AOE / Cloud / Lingering)
+     * 4. สิ่งมีชีวิตที่ถูกอัญเชิญ (Iron's Spells Summons: Vex, Zombie, Skeleton, Polar Bear, Swords)
+     * 5. สัตว์เลี้ยงและสิ่งอัญเชิญทั่วไป (Tamable / Ownable Entities: Wolves, Horses, Minions)
+     * 6. สกิลและพลังจาก Origins / Origins++ / Medieval Origins (Origins powers, passive damage, special traits)
+     * 7. สายฟ้าที่เกิดจากสกิล (Lightning Bolt created by spells)
+     * 8. การสะท้อน / แฉลบ / ลูกโซ่ (Apotheosis affixes, chain damage)
+     */
+    public static ServerPlayer resolveAttackingPlayer(DamageSource source) {
+        if (source == null) return null;
+
+        // 1. ตรวจสอบ source.getEntity() (ต้นตอความเสียหายที่แท้จริงตามที่ระบบระบุ)
+        ServerPlayer player = resolvePlayerFromEntity(source.getEntity());
+        if (player != null) return player;
+
+        // 2. ตรวจสอบ source.getDirectEntity() (ตัวส่งความเสียหาย เช่น กระสุน, หมอก, คาถา)
+        player = resolvePlayerFromEntity(source.getDirectEntity());
+        if (player != null) return player;
+
+        return null;
+    }
+
+    /**
+     * แกะรอย Entity ใดๆ ย้อนกลับหา ServerPlayer สูงสุด 5 ชั้น (Recursive Owner Resolution)
+     */
+    public static ServerPlayer resolvePlayerFromEntity(Entity entity) {
+        if (entity == null) return null;
+        if (entity instanceof ServerPlayer sp) return sp;
+
+        Entity current = entity;
+        for (int depth = 0; depth < 5; depth++) {
+            if (current instanceof ServerPlayer sp) {
+                return sp;
+            }
+
+            Entity owner = null;
+
+            // 1. Projectile (Vanilla Arrows, Tridents, Iron's Spells AbstractMagicProjectile, AoeEntity)
+            if (current instanceof Projectile projectile) {
+                owner = projectile.getOwner();
+            }
+            // 2. TraceableEntity (Vanilla & Modded traceable objects)
+            else if (current instanceof TraceableEntity traceable) {
+                owner = traceable.getOwner();
+            }
+            // 3. OwnableEntity (Vanilla tamable pets, mounts, modded summons)
+            else if (current instanceof OwnableEntity ownable) {
+                owner = ownable.getOwner();
+            }
+            // 4. AreaEffectCloud (หมอกเวทมนตร์ / ยาพิษตกค้าง)
+            else if (current instanceof AreaEffectCloud aec) {
+                owner = aec.getOwner();
+            }
+            // 5. LightningBolt (สายฟ้าที่ถูกเรียกโดยสกิลหรือคาถา)
+            else if (current instanceof LightningBolt lightning) {
+                owner = lightning.getCause();
+            }
+
+            // 6. ตรวจสอบ Modded APIs & Reflection (Iron's Spells IMagicSummon, Custom Spells, Origins)
+            if (owner == null) {
+                owner = probeModdedOwner(current);
+            }
+
+            if (owner == null || owner == current) {
+                break;
+            }
+            current = owner;
+        }
+
+        if (current instanceof ServerPlayer sp) {
+            return sp;
+        }
+        return null;
+    }
+
+    /**
+     * ค้นหาเจ้าของหรือผู้ร่าย (Caster / Summoner / Owner) ผ่าน Modded API และ Reflection
+     * รองรับ:
+     * - Iron's Spells 'n Spellbooks: IMagicSummon (getSummoner()), AbstractSpellEntity, AoeEntity
+     * - Origins / Origins++: Custom projectile / power sources
+     * - Apotheosis & Custom Mod Summons / Pets
+     */
+    private static Entity probeModdedOwner(Entity entity) {
+        if (entity == null) return null;
+        Class<?> clazz = entity.getClass();
+
+        // 1. ลองเรียก getSummoner() (เช่น io.redspace.ironsspellbooks.entity.mobs.IMagicSummon)
+        try {
+            Method m = clazz.getMethod("getSummoner");
+            Object res = m.invoke(entity);
+            if (res instanceof Entity e) return e;
+        } catch (Throwable ignored) {}
+
+        // 2. ลองเรียก getCaster() (พบบ่อยใน Modded Spell Entities)
+        try {
+            Method m = clazz.getMethod("getCaster");
+            Object res = m.invoke(entity);
+            if (res instanceof Entity e) return e;
+        } catch (Throwable ignored) {}
+
+        // 3. ลองเรียก getOwner() หากไม่ได้ implement Traceable/Ownable แต่มี method นี้
+        try {
+            Method m = clazz.getMethod("getOwner");
+            Object res = m.invoke(entity);
+            if (res instanceof Entity e) return e;
+        } catch (Throwable ignored) {}
+
+        // 4. ลองเรียก getTrueOwner()
+        try {
+            Method m = clazz.getMethod("getTrueOwner");
+            Object res = m.invoke(entity);
+            if (res instanceof Entity e) return e;
+        } catch (Throwable ignored) {}
+
+        // 5. ตรวจสอบ UUID เจ้าของ (getOwnerUUID หรือ getSummonerUUID) แล้ว lookup กับ Server
+        try {
+            UUID ownerUuid = null;
+            try {
+                Method m = clazz.getMethod("getOwnerUUID");
+                Object res = m.invoke(entity);
+                if (res instanceof UUID u) ownerUuid = u;
+            } catch (Throwable ignored) {}
+
+            if (ownerUuid == null) {
+                try {
+                    Method m = clazz.getMethod("getSummonerUUID");
+                    Object res = m.invoke(entity);
+                    if (res instanceof UUID u) ownerUuid = u;
+                } catch (Throwable ignored) {}
+            }
+
+            if (ownerUuid != null && entity.getServer() != null) {
+                return entity.getServer().getPlayerList().getPlayer(ownerUuid);
+            }
+        } catch (Throwable ignored) {}
+
+        return null;
+    }
+
+    /**
+     * สั่งให้ Mob / Summon / Pet ยกเลิกความก้าวร้าวต่อเป้าหมาย เมื่อการโจมตีถูกปฏิเสธ
+     */
+    private static void dropMobAggro(DamageSource source, ServerPlayer victim) {
+        if (source == null || victim == null) return;
+        if (source.getDirectEntity() instanceof Mob mob) {
+            if (mob.getTarget() == victim) {
+                mob.setTarget(null);
+            }
+            mob.setLastHurtByMob(null);
+        }
+        if (source.getEntity() instanceof Mob mob) {
+            if (mob.getTarget() == victim) {
+                mob.setTarget(null);
+            }
+            mob.setLastHurtByMob(null);
+        }
+    }
+
+    /* ------------------------------------------------------------------ */
     /* ⚔️ Event Handlers                                                    */
     /* ------------------------------------------------------------------ */
 
@@ -182,11 +360,22 @@ public class PvPManager {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onAttackEntity(AttackEntityEvent event) {
         if (event.getEntity().level().isClientSide()) return;
-        if (!(event.getTarget() instanceof Player victim)) return;
-        Player attacker = event.getEntity();
-        if (attacker.getUUID().equals(victim.getUUID())) return;
+        Player rawAttacker = event.getEntity();
+        if (!(rawAttacker instanceof ServerPlayer attacker)) return;
 
-        // 1. สมาชิกปาร์ตี้เดียวกัน -> ตีกันไม่ได้เด็ดขาด 100%
+        Entity target = event.getTarget();
+
+        // Target อาจเป็น Player หรือเป็น Pet/Summon ของ Player
+        ServerPlayer victim = null;
+        if (target instanceof ServerPlayer sp) {
+            victim = sp;
+        } else {
+            victim = resolvePlayerFromEntity(target);
+        }
+
+        if (victim == null || attacker.getUUID().equals(victim.getUUID())) return;
+
+        // 1. สมาชิกปาร์ตี้เดียวกัน -> ตีกันไม่ได้เด็ดขาด 100% (รวมถึงสัตว์เลี้ยง/ซัมมอนของเพื่อนในปาร์ตี้)
         if (areInSameParty(attacker, victim)) {
             event.setCanceled(true);
             return;
@@ -203,79 +392,89 @@ public class PvPManager {
         // 3. หากผู้ถูกโจมตีอยู่ในโหมดสงบ (ไม่ได้เปิด Alt + C) -> ห้ามใครตีเด็ดขาด (อมตะ PVE)
         if (!victimData.pvpEnabled) {
             event.setCanceled(true);
-            if (attacker instanceof ServerPlayer sp) {
-                sp.displayClientMessage(Component.literal("§7🛡️ ผู้เล่นคนนี้อยู่ในโหมดสงบ (ไม่ได้เปิด PvP) ไม่สามารถโจมตีได้!"), true);
-            }
+            attacker.displayClientMessage(Component.literal("§7🛡️ ผู้เล่นคนนี้อยู่ในโหมดสงบ (ไม่ได้เปิด PvP) ไม่สามารถโจมตีได้!"), true);
             return;
         }
 
         // 4. หากผู้โจมตีไม่ได้เปิด Alt + C -> ห้ามโจมตีคนอื่น
         if (!attackerData.pvpEnabled) {
             event.setCanceled(true);
-            if (attacker instanceof ServerPlayer sp) {
-                sp.displayClientMessage(Component.literal("§c❌ คุณปิดโหมด PvP อยู่! (กด Alt + C หรือพิมพ์ /pvp เพื่อเปิดโหมดต่อสู้)"), true);
-            }
+            attacker.displayClientMessage(Component.literal("§c❌ คุณปิดโหมด PvP อยู่! (กด Alt + C หรือพิมพ์ /pvp เพื่อเปิดโหมดต่อสู้)"), true);
         }
     }
 
     /**
-     * ดักจับความเสียหายเบื้องต้น (รวมการยิงธนู / กระสุนเวทมนตร์ / ทักษะ)
+     * ดักจับความเสียหายเบื้องต้น (รวมการยิงธนู / กระสุนเวทมนตร์ / ทักษะ / ซัมมอน / สกิล Origin)
+     * การ Canceled ในระดับ LivingAttackEvent จะหยุดยั้งความเสียหาย, เอฟเฟกต์กระเด็น, และการติดสถานะพิษ/ไฟ
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onLivingAttack(LivingAttackEvent event) {
         if (event.getEntity().level().isClientSide()) return;
-        if (!(event.getEntity() instanceof ServerPlayer victim)) return;
 
-        ServerPlayer attacker = null;
-        if (event.getSource().getEntity() instanceof ServerPlayer sp) {
-            attacker = sp;
-        } else if (event.getSource().getDirectEntity() instanceof ServerPlayer sp) {
-            attacker = sp;
+        // ค้นหาเป้าหมาย (อาจเป็น ServerPlayer หรือสัตว์เลี้ยง/ซัมมอนของผู้เล่น)
+        ServerPlayer victim = null;
+        if (event.getEntity() instanceof ServerPlayer sp) {
+            victim = sp;
+        } else {
+            victim = resolvePlayerFromEntity(event.getEntity());
         }
+        if (victim == null) return;
+
+        // ค้นหาผู้โจมตี (ต้นตอ ไม่ว่าจะเป็นคนยิง, คนร่ายเวท, สกิล Origin, หรือซัมมอน)
+        ServerPlayer attacker = resolveAttackingPlayer(event.getSource());
         if (attacker == null || attacker.getUUID().equals(victim.getUUID())) return;
 
-        // 1. สมาชิกปาร์ตี้เดียวกัน
+        // 1. สมาชิกปาร์ตี้เดียวกัน (FTB Teams & Vanilla) -> ยกเลิก 100%
         if (areInSameParty(attacker, victim)) {
             event.setCanceled(true);
+            dropMobAggro(event.getSource(), victim);
             return;
         }
 
         PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
         PlayerPvPData victimData = getOrCreate(victim.getUUID());
 
-        // 2. Free PK
+        // 2. Free PK (🗡️) อนุญาตให้โจมตีได้
         if (victimData.isPkFlagged()) return;
 
-        // 3. ฝ่ายถูกโจมตีไม่ได้เปิด PvP
+        // 3. ฝ่ายถูกโจมตีอยู่ในโหมดสงบ (PvP OFF) -> ป้องกัน 100%
         if (!victimData.pvpEnabled) {
             event.setCanceled(true);
+            dropMobAggro(event.getSource(), victim);
             return;
         }
 
-        // 4. ฝ่ายโจมตีไม่ได้เปิด PvP
+        // 4. ฝ่ายโจมตีปิดโหมด PvP -> ห้ามทำร้ายใคร
         if (!attackerData.pvpEnabled) {
             event.setCanceled(true);
+            dropMobAggro(event.getSource(), victim);
         }
     }
 
+    /**
+     * ดักจับความเสียหายเมื่อผ่านเกราะ/การคำนวณขั้นสุดท้าย (Safety Net & Free PK Trigger)
+     */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onLivingHurt(LivingHurtEvent event) {
         if (event.getEntity().level().isClientSide()) return;
-        if (!(event.getEntity() instanceof ServerPlayer victim)) return;
 
-        // ค้นหาผู้เล่นที่เป็นผู้โจมตี (ทั้งโจมตีตรง และโจมตีผ่านกระสุน/ธนู)
-        ServerPlayer attacker = null;
-        if (event.getSource().getEntity() instanceof ServerPlayer sp) {
-            attacker = sp;
-        } else if (event.getSource().getDirectEntity() instanceof ServerPlayer sp) {
-            attacker = sp;
+        // ค้นหาเป้าหมาย
+        ServerPlayer victim = null;
+        if (event.getEntity() instanceof ServerPlayer sp) {
+            victim = sp;
+        } else {
+            victim = resolvePlayerFromEntity(event.getEntity());
         }
+        if (victim == null) return;
 
+        // ค้นหาผู้โจมตี
+        ServerPlayer attacker = resolveAttackingPlayer(event.getSource());
         if (attacker == null || attacker.getUUID().equals(victim.getUUID())) return;
 
         // 1. สมาชิกปาร์ตี้เดียวกัน -> ตีกันไม่ได้เด็ดขาด (Cancel Damage 100%)
         if (areInSameParty(attacker, victim)) {
             event.setCanceled(true);
+            dropMobAggro(event.getSource(), victim);
             return;
         }
 
@@ -295,6 +494,7 @@ public class PvPManager {
         // 3. หากผู้ถูกโจมตีอยู่ในโหมดสงบ (ไม่ได้เปิด PvP) -> ป้องกัน 100%
         if (!victimData.pvpEnabled) {
             event.setCanceled(true);
+            dropMobAggro(event.getSource(), victim);
             attacker.displayClientMessage(Component.literal("§7🛡️ ผู้เล่นคนนี้อยู่ในโหมดสงบ (ไม่ได้เปิด PvP) ไม่สามารถโจมตีได้!"), true);
             return;
         }
@@ -302,6 +502,7 @@ public class PvPManager {
         // 4. กรณีผู้โจมตีไม่ได้เปิดโหมด PvP (PvP OFF):
         if (!attackerData.pvpEnabled) {
             event.setCanceled(true);
+            dropMobAggro(event.getSource(), victim);
             attacker.displayClientMessage(Component.literal("§c❌ คุณปิดโหมด PvP อยู่! (กด Alt + C หรือพิมพ์ /pvp เพื่อเปิดโหมดต่อสู้)"), true);
             return;
         }
