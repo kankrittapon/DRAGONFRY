@@ -17,8 +17,8 @@ import org.lwjgl.glfw.GLFW;
 public class PvPCursorScreen extends Screen {
     public static final int BTN_X = 10;
     public static final int BTN_Y = 10;
-    public static final int BTN_W = 110;
-    public static final int BTN_H = 26;
+    public static final int BTN_W = 124;
+    public static final int BTN_H = 28;
 
     public PvPCursorScreen() {
         super(Component.literal("OmniCore PvP Control"));

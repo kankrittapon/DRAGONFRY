@@ -293,6 +293,16 @@ public class OmniCoreMod {
                     ctx.getSource().sendSuccess(() -> Component.literal("§aสั่งซิงก์ค่าตั้งค่าจาก Google Apps Script ทันทีแล้ว!"), false);
                     return 1;
                 }))
+                .then(Commands.literal("studio").executes(ctx -> {
+                    int p = OmniConfig.INSTANCE.webServerPort.get();
+                    String t = OmniConfig.INSTANCE.webServerToken.get();
+                    ctx.getSource().sendSuccess(() -> Component.literal(
+                            "§6🌐 === [OmniCore Web Studio] ===§r\n" +
+                            " » URL: §fhttp://127.0.0.1:" + p + "/ (หรือ http://<server-ip>:" + p + "/)\n" +
+                            " » Token: §a" + t
+                    ), false);
+                    return 1;
+                }))
                 .then(Commands.literal("system")
                     .then(Commands.literal("status").executes(ctx -> {
                         ctx.getSource().sendSuccess(() -> Component.literal(

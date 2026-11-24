@@ -4,13 +4,19 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
 /**
  * MMORPG-Style PvP HUD Badge Overlay
- * แสดงสถานะ โหมดสงบ (🛡️ Safe) / โหมด PvP (⚔️ PvP) / Free PK (🗡️ PK Countdown)
+ * แสดงสัญลักษณ์วงกลมดาบและโล่ (Ref: Lineage II / MMORPG Alt+C)
+ * โหมดสงบ (🛡️ Safe / pvp_off.png) / โหมด PvP ลุกเป็นไฟ (⚔️ PvP / pvp_on.png) / Free PK (🗡️ PK / pvp_pk.png)
  */
 public class PvPHudOverlay {
+    public static final ResourceLocation TEXTURE_OFF = new ResourceLocation("omnicore", "textures/gui/pvp_off.png");
+    public static final ResourceLocation TEXTURE_ON = new ResourceLocation("omnicore", "textures/gui/pvp_on.png");
+    public static final ResourceLocation TEXTURE_PK = new ResourceLocation("omnicore", "textures/gui/pvp_pk.png");
+
     public static final IGuiOverlay PVP_HUD = (gui, gfx, partialTick, screenW, screenH) -> {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui) return;
@@ -32,46 +38,52 @@ public class PvPHudOverlay {
         int bgCol;
         String title;
         int titleCol;
+        ResourceLocation emblemTexture;
 
         if (isPk) {
-            // Free PK State: สีแดงเข้มกะพริบ พร้อมเลขนับถอยหลัง
+            // Free PK State: สัญลักษณ์สีแดงเข้มกะพริบ พร้อมเลขนับถอยหลัง
             borderCol = hovered ? 0xFFFF3333 : 0xFFDC2626;
             bgCol = 0xE6260808;
             title = "🗡 PK [" + secLeft + "s]";
             titleCol = (System.currentTimeMillis() % 600 < 300) ? 0xFFFF4444 : 0xFFFCD34D;
+            emblemTexture = TEXTURE_PK;
         } else if (isPvp) {
-            // PvP Active: สีแดงเพลิง
+            // PvP Active: สัญลักษณ์ดาบและโล่ลุกเป็นไฟโชติช่วง (Fiery Flame Emblem)
             borderCol = hovered ? 0xFFFF6666 : 0xFFB91C1C;
             bgCol = 0xE61F0A0A;
             title = "⚔ PVP [ON]";
             titleCol = hovered ? 0xFFFFFFFF : 0xFFF87171;
+            emblemTexture = TEXTURE_ON;
         } else {
-            // Peaceful / Safe Mode: สีเขียวมรกต
+            // Peaceful / Safe Mode: สัญลักษณ์ดาบและโล่แบบมืด (Dark Shield Emblem)
             borderCol = hovered ? 0xFF34D399 : 0xFF059669;
             bgCol = 0xE6051E14;
             title = "🛡 SAFE [PVE]";
             titleCol = hovered ? 0xFFFFFFFF : 0xFF6EE7B7;
+            emblemTexture = TEXTURE_OFF;
         }
 
         RenderSystem.enableBlend();
 
         // 1. Drop Shadow Outer Frame
         gfx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0x99000000);
-        // 2. Themed Frame
+        // 2. Themed Frame (โกลว์กรอบทองเมื่อโฮเวอร์)
+        if (hovered) {
+            gfx.fill(x - 2, y - 2, x + w + 2, y + h + 2, 0xAAFFD700);
+        }
         gfx.fill(x, y, x + w, y + h, borderCol);
-        // 3. Dark Obsidian Inner
+        // 3. Dark Obsidian Inner Background
         gfx.fill(x + 1, y + 1, x + w - 1, y + h - 1, bgCol);
 
-        // 4. Accent Left Indicator Bar
-        int accentBarCol = isPk ? 0xFFEF4444 : (isPvp ? 0xFFDC2626 : 0xFF10B981);
-        gfx.fill(x + 1, y + 1, x + 4, y + h - 1, accentBarCol);
+        // 4. Render Authentic Emblem (24x24 px) from ref images
+        gfx.blit(emblemTexture, x + 2, y + 2, 24, 24, 0f, 0f, 64, 64, 64, 64);
 
         // 5. Header Title
-        gfx.drawString(font, title, x + 8, y + 4, titleCol, true);
+        gfx.drawString(font, title, x + 29, y + 4, titleCol, true);
 
         // 6. Subtitle / Control Shortcut Hint
-        String hint = cursorActive ? "§e[CLICK TO TOGGLE]" : "§7[Ctrl] Cursor [Alt+C]";
-        gfx.drawString(font, hint, x + 8, y + 15, 0xFFAAAAAA, false);
+        String hint = cursorActive ? "§e[CLICK TO TOGGLE]" : "§7[Ctrl] UI [Alt+C]";
+        gfx.drawString(font, hint, x + 29, y + 15, 0xFFAAAAAA, false);
 
         RenderSystem.disableBlend();
     }

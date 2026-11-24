@@ -290,28 +290,98 @@ public class EmbeddedStudioServer {
     }
 
     /* ------------------------------------------------------------------ */
-    /* Static Web Handler (Serves /web/ files from Mod Jar classpath)      */
+    /* Static Web Handler (Serves /web/ files from Mod Jar or Filesystem)  */
     /* ------------------------------------------------------------------ */
+    private InputStream findWebResource(String relativePath) {
+        String clean = relativePath.replace("\\", "/").replaceAll("^/+", "");
+        if (clean.startsWith("web/")) {
+            clean = clean.substring("web/".length());
+        }
+        if (clean.isEmpty()) clean = "index.html";
+
+        String[] pathsToTry = new String[] {
+                "web/" + clean,
+                clean
+        };
+
+        for (String p : pathsToTry) {
+            // Strategy 1: Forge Native ModFile Resource (100% reliable inside Forge 1.20.1 JAR)
+            try {
+                var modFileInfo = net.minecraftforge.fml.ModList.get().getModFileById("omnicore");
+                if (modFileInfo != null && modFileInfo.getFile() != null) {
+                    java.nio.file.Path resPath = modFileInfo.getFile().findResource(p.split("/"));
+                    if (resPath != null && java.nio.file.Files.exists(resPath)) {
+                        return java.nio.file.Files.newInputStream(resPath);
+                    }
+                }
+            } catch (Throwable ignored) {}
+
+            // Strategy 2: ClassLoader without leading slash
+            try {
+                InputStream is = getClass().getClassLoader().getResourceAsStream(p);
+                if (is != null) return is;
+            } catch (Throwable ignored) {}
+
+            // Strategy 3: Class getResourceAsStream with leading slash
+            try {
+                InputStream is = getClass().getResourceAsStream("/" + p);
+                if (is != null) return is;
+            } catch (Throwable ignored) {}
+
+            // Strategy 4: Thread Context ClassLoader
+            try {
+                InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(p);
+                if (is != null) return is;
+            } catch (Throwable ignored) {}
+
+            // Strategy 5: Local server / project filesystem fallback
+            try {
+                String sub = p.startsWith("web/") ? p.substring(4) : p;
+                java.io.File[] dirs = new java.io.File[] {
+                        new java.io.File("web-studio"),
+                        new java.io.File("config/omnicore/web"),
+                        new java.io.File("web"),
+                        new java.io.File("omnicore/web-studio"),
+                        new java.io.File("E:/Minecraft-Server/omnicore/web-studio")
+                };
+                for (java.io.File dir : dirs) {
+                    java.io.File file = new java.io.File(dir, sub);
+                    if (file.exists() && file.isFile()) {
+                        return new java.io.FileInputStream(file);
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
+        return null;
+    }
+
     private void handleStatic(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
-        if (path == null || path.equals("/") || path.isBlank()) {
-            path = "/index.html";
+        if (path == null) path = "/";
+
+        // Aliases support: strip /studio or /web
+        if (path.startsWith("/studio")) {
+            path = path.substring("/studio".length());
+        }
+        if (path.startsWith("/web")) {
+            path = path.substring("/web".length());
         }
 
-        // Sanitize path against directory traversal
         path = path.replace("\\", "/").replaceAll("/+", "/");
         if (path.contains("..")) {
             sendRawResponse(exchange, 403, "text/plain", "Forbidden".getBytes(StandardCharsets.UTF_8));
             return;
         }
 
-        String resourcePath = "/web" + path;
-        InputStream is = getClass().getResourceAsStream(resourcePath);
+        if (path.isEmpty() || path.equals("/")) {
+            path = "/index.html";
+        }
 
-        if (is == null) {
-            // Fallback for single page app
-            resourcePath = "/web/index.html";
-            is = getClass().getResourceAsStream(resourcePath);
+        InputStream is = findWebResource(path);
+        if (is == null && !path.endsWith(".js") && !path.endsWith(".css") && !path.endsWith(".png") && !path.endsWith(".ico")) {
+            // SPA fallback
+            is = findWebResource("/index.html");
+            path = "/index.html";
         }
 
         if (is == null) {
@@ -320,7 +390,7 @@ public class EmbeddedStudioServer {
         }
 
         byte[] bytes = readAllBytes(is);
-        String mime = getMimeType(resourcePath);
+        String mime = getMimeType(path);
         sendRawResponse(exchange, 200, mime, bytes);
     }
 
