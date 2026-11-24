@@ -78,7 +78,7 @@ public class OmniCoreMod {
 
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(
+        var omnicoreNode = event.getDispatcher().register(
             Commands.literal("omnicore")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("list").executes(ctx -> {
@@ -347,6 +347,11 @@ public class OmniCoreMod {
                             return 1;
                         }))))
         );
+
+        // Command Aliases: /dfboss, /wboss, /core ชี้ไปที่ /omnicore โดยตรง
+        event.getDispatcher().register(Commands.literal("dfboss").requires(src -> src.hasPermission(2)).redirect(omnicoreNode));
+        event.getDispatcher().register(Commands.literal("wboss").requires(src -> src.hasPermission(2)).redirect(omnicoreNode));
+        event.getDispatcher().register(Commands.literal("core").requires(src -> src.hasPermission(2)).redirect(omnicoreNode));
 
         // คำสั่ง /pvp สำหรับผู้เล่นทุกคน (ไม่จำกัด op) สลับโหมดต่อสู้ PvP / ตรวจสอบสถานะ
         event.getDispatcher().register(

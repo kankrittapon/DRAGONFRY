@@ -10,8 +10,10 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -172,6 +174,90 @@ public class PvPManager {
     /* ------------------------------------------------------------------ */
     /* ⚔️ Event Handlers                                                    */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * ดักจับการคลิกโจมตี / เหวี่ยงอาวุธใส่ผู้เล่นอื่น
+     * ป้องกันการผลัก (Knockback), แอนิเมชันดาบ, เสียงโดนฟัน หากไม่ได้เปิดโหมด PvP ทั้งคู่
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onAttackEntity(AttackEntityEvent event) {
+        if (event.getEntity().level().isClientSide()) return;
+        if (!(event.getTarget() instanceof Player victim)) return;
+        Player attacker = event.getEntity();
+        if (attacker.getUUID().equals(victim.getUUID())) return;
+
+        // 1. สมาชิกปาร์ตี้เดียวกัน -> ตีกันไม่ได้เด็ดขาด 100%
+        if (areInSameParty(attacker, victim)) {
+            event.setCanceled(true);
+            return;
+        }
+
+        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
+        PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        // 2. หากเป้าหมายเป็น Free PK (🗡️) -> อนุญาตให้ทุกคนรุมตีได้
+        if (victimData.isPkFlagged()) {
+            return;
+        }
+
+        // 3. หากผู้ถูกโจมตีอยู่ในโหมดสงบ (ไม่ได้เปิด Alt + C) -> ห้ามใครตีเด็ดขาด (อมตะ PVE)
+        if (!victimData.pvpEnabled) {
+            event.setCanceled(true);
+            if (attacker instanceof ServerPlayer sp) {
+                sp.displayClientMessage(Component.literal("§7🛡️ ผู้เล่นคนนี้อยู่ในโหมดสงบ (ไม่ได้เปิด PvP) ไม่สามารถโจมตีได้!"), true);
+            }
+            return;
+        }
+
+        // 4. หากผู้โจมตีไม่ได้เปิด Alt + C -> ห้ามโจมตีคนอื่น
+        if (!attackerData.pvpEnabled) {
+            event.setCanceled(true);
+            if (attacker instanceof ServerPlayer sp) {
+                sp.displayClientMessage(Component.literal("§c❌ คุณปิดโหมด PvP อยู่! (กด Alt + C หรือพิมพ์ /pvp เพื่อเปิดโหมดต่อสู้)"), true);
+            }
+        }
+    }
+
+    /**
+     * ดักจับความเสียหายเบื้องต้น (รวมการยิงธนู / กระสุนเวทมนตร์ / ทักษะ)
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onLivingAttack(LivingAttackEvent event) {
+        if (event.getEntity().level().isClientSide()) return;
+        if (!(event.getEntity() instanceof ServerPlayer victim)) return;
+
+        ServerPlayer attacker = null;
+        if (event.getSource().getEntity() instanceof ServerPlayer sp) {
+            attacker = sp;
+        } else if (event.getSource().getDirectEntity() instanceof ServerPlayer sp) {
+            attacker = sp;
+        }
+        if (attacker == null || attacker.getUUID().equals(victim.getUUID())) return;
+
+        // 1. สมาชิกปาร์ตี้เดียวกัน
+        if (areInSameParty(attacker, victim)) {
+            event.setCanceled(true);
+            return;
+        }
+
+        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
+        PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        // 2. Free PK
+        if (victimData.isPkFlagged()) return;
+
+        // 3. ฝ่ายถูกโจมตีไม่ได้เปิด PvP
+        if (!victimData.pvpEnabled) {
+            event.setCanceled(true);
+            return;
+        }
+
+        // 4. ฝ่ายโจมตีไม่ได้เปิด PvP
+        if (!attackerData.pvpEnabled) {
+            event.setCanceled(true);
+        }
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onLivingHurt(LivingHurtEvent event) {
         if (event.getEntity().level().isClientSide()) return;
@@ -180,6 +266,8 @@ public class PvPManager {
         // ค้นหาผู้เล่นที่เป็นผู้โจมตี (ทั้งโจมตีตรง และโจมตีผ่านกระสุน/ธนู)
         ServerPlayer attacker = null;
         if (event.getSource().getEntity() instanceof ServerPlayer sp) {
+            attacker = sp;
+        } else if (event.getSource().getDirectEntity() instanceof ServerPlayer sp) {
             attacker = sp;
         }
 
@@ -204,16 +292,21 @@ public class PvPManager {
             return; // อนุญาตให้ตีได้
         }
 
-        // 3. กรณีผู้โจมตีไม่ได้เปิดโหมด PvP (PvP OFF):
-        // ห้ามโจมตีผู้เล่นอื่น (ยกเว้นเป้าหมาย Free PK ด้านบน)
+        // 3. หากผู้ถูกโจมตีอยู่ในโหมดสงบ (ไม่ได้เปิด PvP) -> ป้องกัน 100%
+        if (!victimData.pvpEnabled) {
+            event.setCanceled(true);
+            attacker.displayClientMessage(Component.literal("§7🛡️ ผู้เล่นคนนี้อยู่ในโหมดสงบ (ไม่ได้เปิด PvP) ไม่สามารถโจมตีได้!"), true);
+            return;
+        }
+
+        // 4. กรณีผู้โจมตีไม่ได้เปิดโหมด PvP (PvP OFF):
         if (!attackerData.pvpEnabled) {
             event.setCanceled(true);
             attacker.displayClientMessage(Component.literal("§c❌ คุณปิดโหมด PvP อยู่! (กด Alt + C หรือพิมพ์ /pvp เพื่อเปิดโหมดต่อสู้)"), true);
             return;
         }
 
-        // 4. ผู้โจมตีเปิดโหมด PvP (PvP ON):
-        // เมื่อเริ่มโจมตีผู้เล่นอื่น -> ผู้โจมตีจะได้รับสัญลักษณ์ดาบ 🗡️ กลายเป็น Free PK ทันที 45 วินาที!
+        // 5. ผู้เล่นเปิดโหมด PvP ทั้งคู่ -> อนุญาตให้ต่อสู้กันได้ และผู้เปิดฉากโจมตีติดสถานะ Free PK 45 วินาที
         attackerData.pkExpireAtMillis = System.currentTimeMillis() + 45_000L;
         syncPlayerName(attacker);
         attacker.displayClientMessage(Component.literal("§4🗡️ [FREE PK] คุณเปิดฉากโจมตีผู้เล่น! ติดสถานะดาบ 45 วินาที (ทุกคนสามารถโจมตีคุณได้)"), true);
