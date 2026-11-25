@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -40,6 +41,7 @@ public class EmbeddedStudioServer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private HttpServer server;
+    private ExecutorService httpExecutor;
     private MinecraftServer minecraftServer;
     private int port = 8088;
 
@@ -60,7 +62,12 @@ public class EmbeddedStudioServer {
 
             InetSocketAddress address = new InetSocketAddress(bindAddr, port);
             server = HttpServer.create(address, 0);
-            server.setExecutor(Executors.newFixedThreadPool(4));
+            httpExecutor = Executors.newFixedThreadPool(4, r -> {
+                Thread t = new Thread(r, "OmniCore-WebStudio");
+                t.setDaemon(true);
+                return t;
+            });
+            server.setExecutor(httpExecutor);
 
             // REST API Handlers
             server.createContext("/api/status", this::handleStatus);
@@ -85,10 +92,16 @@ public class EmbeddedStudioServer {
     public synchronized void stop() {
         if (server != null) {
             try {
-                server.stop(1);
+                server.stop(0);
                 LOGGER.info("[OmniCore] Embedded Web Studio stopped.");
             } catch (Exception ignored) {}
             server = null;
+        }
+        if (httpExecutor != null) {
+            try {
+                httpExecutor.shutdownNow();
+            } catch (Exception ignored) {}
+            httpExecutor = null;
         }
     }
 
