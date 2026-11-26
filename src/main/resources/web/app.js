@@ -271,6 +271,9 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.add("active");
     const target = document.getElementById(btn.dataset.tab);
     if (target) target.classList.add("active");
+    if (btn.dataset.tab === "stackmob-tab") {
+      refreshStackMobStatus();
+    }
   });
 });
 
@@ -595,9 +598,138 @@ async function sendSpawnNear(id) {
   }
 }
 
+// ==========================================
+// Merge'n'Feel (Mob Stacker) Integration
+// ==========================================
+async function refreshStackMobStatus() {
+  const badge = document.getElementById("stackmob-status-badge");
+  const modeBadge = document.getElementById("stackmob-mode-badge");
+  const controls = document.getElementById("stackmob-controls");
+  const notInstalled = document.getElementById("stackmob-not-installed-msg");
+  const select = document.getElementById("stackmob-mode-select");
+
+  if (!badge) return;
+  badge.innerText = "⏳ กำลังดึงข้อมูล...";
+  badge.style.color = "var(--gold)";
+
+  try {
+    const res = await fetch("/api/stackmob");
+    if (!res.ok) throw new Error("API returned " + res.status);
+    const data = await res.json();
+
+    if (data.installed) {
+      badge.innerText = "🟢 ติดตั้งแล้ว (พร้อมทำงาน)";
+      badge.style.color = "var(--green)";
+      if (controls) controls.style.display = "block";
+      if (notInstalled) notInstalled.style.display = "none";
+
+      const mode = data.mode || "NORMAL";
+      if (modeBadge) {
+        modeBadge.innerText = "MODE: " + mode;
+        modeBadge.style.color = mode === "ONE_HIT_KILL" ? "var(--green)" : mode === "NORMAL" ? "var(--gold)" : "var(--crimson)";
+      }
+      if (select) select.value = mode;
+    } else {
+      badge.innerText = "⚪ ยังไม่ได้ติดตั้งม็อด";
+      badge.style.color = "#94a3b8";
+      if (controls) controls.style.display = "none";
+      if (notInstalled) notInstalled.style.display = "block";
+      if (modeBadge) {
+        modeBadge.innerText = "NOT INSTALLED";
+        modeBadge.style.color = "#94a3b8";
+      }
+    }
+  } catch (err) {
+    badge.innerText = "❌ เกิดข้อผิดพลาด: " + err.message;
+    badge.style.color = "var(--crimson)";
+  }
+}
+
+async function cycleStackMobMode() {
+  const token = state.config.gasSecretToken || "DF_SECRET_2026";
+  try {
+    const res = await fetch("/api/stackmob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ token: token, action: "cycle" })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert("✅ " + (data.message || "เปลี่ยนโหมดสำเร็จ"));
+      refreshStackMobStatus();
+    } else {
+      alert("❌ " + (data.error || "เกิดข้อผิดพลาด"));
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถเชื่อมต่อ API: " + e.message);
+  }
+}
+
+async function toggleStackMobEnabled() {
+  const token = state.config.gasSecretToken || "DF_SECRET_2026";
+  try {
+    const res = await fetch("/api/stackmob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ token: token, action: "toggle" })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert("✅ " + (data.message || "สลับสถานะสำเร็จ"));
+      refreshStackMobStatus();
+    } else {
+      alert("❌ " + (data.error || "เกิดข้อผิดพลาด"));
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถเชื่อมต่อ API: " + e.message);
+  }
+}
+
+async function changeStackMobMode() {
+  const select = document.getElementById("stackmob-mode-select");
+  if (!select) return;
+  const targetMode = select.value;
+  const token = state.config.gasSecretToken || "DF_SECRET_2026";
+  try {
+    const res = await fetch("/api/stackmob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ token: token, action: "setmode", mode: targetMode })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      refreshStackMobStatus();
+    } else {
+      alert("❌ " + (data.error || "ไม่สามารถตั้งค่าโหมดได้"));
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถเชื่อมต่อ API: " + e.message);
+  }
+}
+
+async function unstackMobsNearby() {
+  const token = state.config.gasSecretToken || "DF_SECRET_2026";
+  try {
+    const res = await fetch("/api/command", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ token: token, command: "stackmob toggle" })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert("✅ ส่งคำสั่งสลับการรวมม็อบเรียบร้อย!");
+    } else {
+      alert("❌ " + data.error);
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถส่งคำสั่งได้: " + e.message);
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   renderBossCards();
   renderRulesTable();
   updateHudPreview();
   checkEmbeddedServer();
+  refreshStackMobStatus();
 });

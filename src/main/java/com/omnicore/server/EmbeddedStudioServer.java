@@ -74,6 +74,7 @@ public class EmbeddedStudioServer {
             server.createContext("/api/bosses", this::handleBosses);
             server.createContext("/api/mobs", this::handleMobs);
             server.createContext("/api/command", this::handleCommand);
+            server.createContext("/api/stackmob", this::handleStackMob);
 
             // Static Web Resource Handler (Serves /web/* from inside jar)
             server.createContext("/", this::handleStatic);
@@ -171,6 +172,9 @@ public class EmbeddedStudioServer {
             out.addProperty("activeBossesCount", UniversalBossManager.INSTANCE.getActiveBossCount());
             out.addProperty("registeredBossProfilesCount", UniversalBossManager.INSTANCE.getRegisteredBossCount());
         }
+
+        // MergeFeel Integration Status
+        out.add("mergeFeel", MergeFeelBridge.INSTANCE.getStatusJson());
 
         sendJsonResponse(exchange, 200, out);
     }
@@ -300,6 +304,80 @@ public class EmbeddedStudioServer {
         } else {
             sendJsonResponse(exchange, 503, errorJson("Minecraft Server is not ready yet"));
         }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* API: /api/stackmob (GET / POST)                                    */
+    /* ------------------------------------------------------------------ */
+    private void handleStackMob(HttpExchange exchange) throws IOException {
+        setCORSHeaders(exchange);
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(204, -1);
+            return;
+        }
+
+        if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            JsonObject status = MergeFeelBridge.INSTANCE.getStatusJson();
+            sendJsonResponse(exchange, 200, status);
+            return;
+        }
+
+        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            JsonObject body = parseJsonBody(exchange);
+            if (!isAuthorized(exchange, body)) {
+                sendJsonResponse(exchange, 401, errorJson("Unauthorized - Invalid Security Token"));
+                return;
+            }
+
+            if (!MergeFeelBridge.INSTANCE.isLoaded()) {
+                sendJsonResponse(exchange, 400, errorJson("Merge'n'Feel is not installed on this server."));
+                return;
+            }
+
+            String action = body.has("action") ? body.get("action").getAsString().toLowerCase() : "";
+            JsonObject res = new JsonObject();
+            res.addProperty("ok", true);
+
+            switch (action) {
+                case "toggle" -> {
+                    boolean enabled = MergeFeelBridge.INSTANCE.toggleEnabled();
+                    res.addProperty("enabled", enabled);
+                    res.addProperty("message", "Mob stacking toggled: " + (enabled ? "ENABLED" : "DISABLED"));
+                }
+                case "cycle" -> {
+                    String newMode = MergeFeelBridge.INSTANCE.cycleMode();
+                    res.addProperty("mode", newMode);
+                    res.addProperty("message", "Mob stack mode cycled to: " + newMode);
+                }
+                case "setmode" -> {
+                    String targetMode = body.has("mode") ? body.get("mode").getAsString() : "NORMAL";
+                    boolean success = MergeFeelBridge.INSTANCE.setMode(targetMode);
+                    res.addProperty("success", success);
+                    res.addProperty("mode", targetMode);
+                    res.addProperty("message", success ? "Mode updated to " + targetMode : "Failed to set mode");
+                }
+                case "unstack" -> {
+                    if (minecraftServer != null) {
+                        minecraftServer.execute(() -> {
+                            minecraftServer.getCommands().performPrefixedCommand(
+                                    minecraftServer.createCommandSourceStack().withSuppressedOutput(),
+                                    "stackmob toggle"
+                            );
+                        });
+                    }
+                    res.addProperty("message", "Unstack command executed.");
+                }
+                default -> {
+                    sendJsonResponse(exchange, 400, errorJson("Unknown action. Supported: toggle, cycle, setMode, unstack"));
+                    return;
+                }
+            }
+
+            sendJsonResponse(exchange, 200, res);
+            return;
+        }
+
+        sendJsonResponse(exchange, 405, errorJson("Method Not Allowed"));
     }
 
     /* ------------------------------------------------------------------ */

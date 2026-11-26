@@ -3,23 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OmniCore Studio — Universal Minecraft RPG & Server Engine</title>
+  <title>Dragonfyre Forge Studio - Web Edition</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <header>
     <div class="brand">
-      <div class="brand-icon">🌌</div>
+      <div class="brand-icon">🐉</div>
       <div>
-        <h1>OMNICORE FORGE STUDIO</h1>
+        <h1>DRAGONFYRE FORGE STUDIO</h1>
       </div>
-      <span id="server-badge">UNIVERSAL RPG & SERVER ENGINE</span>
+      <span id="server-badge">WEB EDITION (ALL-IN-ONE)</span>
     </div>
     <nav>
       <button class="tab-btn active" data-tab="boss-tab">🛡️ World Boss Studio</button>
       <button class="tab-btn" data-tab="hud-tab">📢 Announcement Studio</button>
       <button class="tab-btn" data-tab="gas-tab">🌐 Google Script Remote</button>
+      <button class="tab-btn" data-tab="stackmob-tab">📦 Mob Stacker (Merge'n'Feel)</button>
     </nav>
   </header>
 
@@ -113,6 +114,57 @@
         </div>
         <div id="gas-status" style="font-size: 13px; font-weight: 600; margin-top: 8px;">
           ⚪ ยังไม่ได้ทดสอบเชื่อมต่อ
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MOB STACKER (MERGE'N'FEEL) -->
+    <section id="stackmob-tab" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>📦 Merge'n'Feel — Mob & Item Stacking Manager</h2>
+          <p>ควบคุมการทำงานของระบบรวมม็อบและไอเทมดรอป ลดแล็กและเพิ่ม TPS ให้กับเซิร์ฟเวอร์แบบเรียลไทม์</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="refreshStackMobStatus()">🔄 รีเฟรชสถานะ</button>
+        </div>
+      </div>
+
+      <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h3 style="margin-bottom: 4px;">สถานะการติดตั้งม็อด Merge'n'Feel</h3>
+            <span id="stackmob-status-badge" style="font-weight: bold; font-size: 0.95rem;">กำลังตรวจสอบ...</span>
+          </div>
+          <span id="stackmob-mode-badge" style="background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem;">MODE: UNKNOWN</span>
+        </div>
+
+        <div id="stackmob-controls" style="display: none;">
+          <div class="form-group">
+            <label>เลือกโหมดการทำงาน (Mob Stacking Mode):</label>
+            <select class="form-control" id="stackmob-mode-select" onchange="changeStackMobMode()">
+              <option value="OFF">❌ OFF — ปิดการรวมม็อบชั่วคราว</option>
+              <option value="NORMAL">🟡 NORMAL — โหมดมาตรฐาน (ตีตายทีละตัว / Peel-one)</option>
+              <option value="ONE_HIT_KILL">🟢 ONE_HIT_KILL — โหมดฟาร์มโหด (ตีทีเดียวตายทั้งกอง ดรอปของคูณตามสแตค)</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+            <button class="btn" onclick="cycleStackMobMode()">⚡ สลับโหมดถัดไป (Cycle Mode)</button>
+            <button class="btn btn-secondary" onclick="toggleStackMobEnabled()">🔘 เปิด/ปิด ระบบม็อบสแตค (Toggle)</button>
+            <button class="btn" style="background: #ef4444;" onclick="unstackMobsNearby()">💥 สลายกองม็อบรอบตัว (Unstack Nearby)</button>
+          </div>
+
+          <div style="margin-top: 24px; padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 4px solid var(--gold);">
+            <p style="margin: 0; font-size: 0.9rem; color: #cbd5e1;">
+              💡 <strong>คำแนะนำ:</strong> สามารถติดตั้งม็อด <code>mergefeel-0.0.5.jar</code> ในโฟลเดอร์ <code>mods/</code> ของเซิร์ฟเวอร์เพื่อเปิดใช้งาน หากไม่ได้ติดตั้ง เซิร์ฟเวอร์จะยังคงทำงานได้ตามปกติ 100% โดยไม่เกิดข้อผิดพลาด
+            </p>
+          </div>
+        </div>
+
+        <div id="stackmob-not-installed-msg" style="display: none; padding: 20px; text-align: center; color: #94a3b8;">
+          <p style="font-size: 1.1rem; margin-bottom: 8px;">⚪ ไม่พบม็อด <strong>Merge'n'Feel</strong> ในเซิร์ฟเวอร์</p>
+          <p style="font-size: 0.9rem;">หากต้องการใช้งานระบบรวมม็อบและไอเทมดรอป กรุณานำไฟล์ <code>mergefeel-0.0.5.jar</code> ไปวางในโฟลเดอร์ <code>mods/</code> แล้วรีสตาร์ตเซิร์ฟเวอร์</p>
         </div>
       </div>
     </section>
