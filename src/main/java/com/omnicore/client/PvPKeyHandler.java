@@ -41,10 +41,20 @@ public class PvPKeyHandler {
             "key.categories.omnicore"
     );
 
+    public static final KeyMapping TOGGLE_HUD_KEY = new KeyMapping(
+            "key.omnicore.toggle_hud",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.ALT,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_H,
+            "key.categories.omnicore"
+    );
+
     @SubscribeEvent
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(TOGGLE_PVP_KEY);
         event.register(CURSOR_KEY);
+        event.register(TOGGLE_HUD_KEY);
     }
 
     @Mod.EventBusSubscriber(modid = "omnicore", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
@@ -58,6 +68,15 @@ public class PvPKeyHandler {
             while (TOGGLE_PVP_KEY.consumeClick()) {
                 ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
             }
+
+            while (TOGGLE_HUD_KEY.consumeClick()) {
+                OmniClientConfig.isHudHidden = !OmniClientConfig.isHudHidden;
+                mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
+                mc.player.displayClientMessage(
+                    Component.literal("§6[OmniCore] §ePvP HUD: " + (OmniClientConfig.isHudHidden ? "§c[ซ่อน / Hidden]" : "§a[แสดง / Visible]")),
+                    true
+                );
+            }
         }
 
         @SubscribeEvent
@@ -69,6 +88,14 @@ public class PvPKeyHandler {
             if (mc.screen == null) {
                 while (TOGGLE_PVP_KEY.consumeClick()) {
                     ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
+                }
+                while (TOGGLE_HUD_KEY.consumeClick()) {
+                    OmniClientConfig.isHudHidden = !OmniClientConfig.isHudHidden;
+                    mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
+                    mc.player.displayClientMessage(
+                        Component.literal("§6[OmniCore] §ePvP HUD: " + (OmniClientConfig.isHudHidden ? "§c[ซ่อน / Hidden]" : "§a[แสดง / Visible]")),
+                        true
+                    );
                 }
             }
 
@@ -85,21 +112,34 @@ public class PvPKeyHandler {
             event.getDispatcher().register(
                 Commands.literal("pvphud")
                     .executes(ctx -> {
-                        OmniClientConfig.HudCorner corner = OmniClientConfig.HudCorner.TOP_LEFT;
-                        try {
-                            if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
-                                corner = OmniClientConfig.INSTANCE.hudCorner.get();
-                            }
-                        } catch (Exception ignored) {}
-                        final OmniClientConfig.HudCorner current = corner;
+                        final OmniClientConfig.HudCorner current = OmniClientConfig.currentCorner;
                         ctx.getSource().sendSuccess(() -> Component.literal(
                             "§6[OmniCore] §eตำแหน่งมุม PvP HUD ปัจจุบัน: §a" + PvPCursorScreen.formatCornerName(current)
-                            + "\n§7ใช้งาน: /pvphud <top_left|top_right|bottom_left|bottom_right> หรือ /pvphud cycle"
+                            + " §7[สถานะ: " + (OmniClientConfig.isHudHidden ? "§cซ่อนอยู่§7]" : "§aแสดงผล§7]")
+                            + "\n§7ใช้งาน: /pvphud <top_left|top_right|bottom_left|bottom_right> หรือ /pvphud <cycle|toggle>"
                         ), false);
                         return 1;
                     })
                     .then(Commands.literal("cycle").executes(ctx -> {
                         PvPCursorScreen.cycleCorner(Minecraft.getInstance());
+                        return 1;
+                    }))
+                    .then(Commands.literal("toggle").executes(ctx -> {
+                        OmniClientConfig.isHudHidden = !OmniClientConfig.isHudHidden;
+                        Minecraft mc = Minecraft.getInstance();
+                        if (mc != null) mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
+                        ctx.getSource().sendSuccess(() -> Component.literal(
+                            "§6[OmniCore] §ePvP HUD: " + (OmniClientConfig.isHudHidden ? "§c[ซ่อน / Hidden]" : "§a[แสดง / Visible]")
+                        ), false);
+                        return 1;
+                    }))
+                    .then(Commands.literal("hide").executes(ctx -> {
+                        OmniClientConfig.isHudHidden = !OmniClientConfig.isHudHidden;
+                        Minecraft mc = Minecraft.getInstance();
+                        if (mc != null) mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
+                        ctx.getSource().sendSuccess(() -> Component.literal(
+                            "§6[OmniCore] §ePvP HUD: " + (OmniClientConfig.isHudHidden ? "§c[ซ่อน / Hidden]" : "§a[แสดง / Visible]")
+                        ), false);
                         return 1;
                     }))
                     .then(Commands.literal("top_left").executes(ctx -> setCorner(OmniClientConfig.HudCorner.TOP_LEFT, ctx.getSource())))
@@ -110,12 +150,12 @@ public class PvPKeyHandler {
         }
 
         private static int setCorner(OmniClientConfig.HudCorner corner, net.minecraft.commands.CommandSourceStack source) {
+            OmniClientConfig.currentCorner = corner;
             try {
                 if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
                     OmniClientConfig.INSTANCE.hudCorner.set(corner);
-                    OmniClientConfig.SPEC.save();
                 }
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
 
             Minecraft mc = Minecraft.getInstance();
             if (mc != null) {

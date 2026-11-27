@@ -1,5 +1,6 @@
 {
   "key.categories.omnicore": "OmniCore RPG Engine",
   "key.omnicore.toggle_pvp": "Toggle PvP Mode (Alt + C)",
-  "key.omnicore.cursor_screen": "Open PvP Cursor / UI (Hold Ctrl)"
+  "key.omnicore.cursor_screen": "Open PvP Cursor / UI (Hold Ctrl)",
+  "key.omnicore.toggle_hud": "Toggle PvP HUD (Alt + H)"
 }

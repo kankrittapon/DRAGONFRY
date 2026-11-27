@@ -63,15 +63,8 @@ public class PvPCursorScreen extends Screen {
             }
             tooltipLines.add(Component.literal("§8-----------------------------"));
             tooltipLines.add(Component.literal("§f• §aคลิกซ้าย: §7สลับโหมด PvP / PvE"));
-
-            OmniClientConfig.HudCorner currentCorner = OmniClientConfig.HudCorner.TOP_LEFT;
-            try {
-                if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
-                    currentCorner = OmniClientConfig.INSTANCE.hudCorner.get();
-                }
-            } catch (Exception ignored) {}
-
-            tooltipLines.add(Component.literal("§f• §eคลิกขวา: §7ย้ายมุม HUD (§6" + formatCornerName(currentCorner) + "§7)"));
+            tooltipLines.add(Component.literal("§f• §eคลิกขวา: §7ย้ายมุม HUD (§6" + formatCornerName(OmniClientConfig.currentCorner) + "§7)"));
+            tooltipLines.add(Component.literal("§f• §bAlt+H: §7ซ่อน/แสดง HUD (§b" + (OmniClientConfig.isHudHidden ? "ซ่อนอยู่" : "แสดงอยู่") + "§7)"));
             gfx.renderComponentTooltip(this.font, tooltipLines, mouseX, mouseY);
         }
 
@@ -101,13 +94,7 @@ public class PvPCursorScreen extends Screen {
     }
 
     public static void cycleCorner(Minecraft mc) {
-        OmniClientConfig.HudCorner current = OmniClientConfig.HudCorner.TOP_LEFT;
-        try {
-            if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
-                current = OmniClientConfig.INSTANCE.hudCorner.get();
-            }
-        } catch (Exception ignored) {}
-
+        OmniClientConfig.HudCorner current = OmniClientConfig.currentCorner;
         OmniClientConfig.HudCorner next;
         switch (current) {
             case TOP_LEFT:
@@ -125,12 +112,13 @@ public class PvPCursorScreen extends Screen {
                 break;
         }
 
+        OmniClientConfig.currentCorner = next;
+
         try {
             if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
                 OmniClientConfig.INSTANCE.hudCorner.set(next);
-                OmniClientConfig.SPEC.save();
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
 
         if (mc != null) {
             mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.25f));

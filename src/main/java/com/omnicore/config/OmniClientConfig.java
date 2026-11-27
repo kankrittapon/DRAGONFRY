@@ -14,6 +14,10 @@ public class OmniClientConfig {
         BOTTOM_RIGHT
     }
 
+    // Static in-memory runtime states for instantaneous UI updates & hide toggle
+    public static volatile HudCorner currentCorner = HudCorner.TOP_LEFT;
+    public static volatile boolean isHudHidden = false;
+
     public final ForgeConfigSpec.EnumValue<HudCorner> hudCorner;
     public final ForgeConfigSpec.IntValue hudOffsetX;
     public final ForgeConfigSpec.IntValue hudOffsetY;

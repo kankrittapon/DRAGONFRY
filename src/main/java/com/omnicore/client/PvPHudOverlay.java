@@ -21,6 +21,7 @@ public class PvPHudOverlay {
     public static final IGuiOverlay PVP_HUD = (gui, gfx, partialTick, screenW, screenH) -> {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui) return;
+        if (OmniClientConfig.isHudHidden) return;
         // หากผู้เล่นเปิดหน้าต่าง PvPCursorScreen อยู่ จะไม่วาดซ้ำเพื่อไม่ให้ภาพทับซ้อน
         if (mc.screen instanceof PvPCursorScreen) return;
 
@@ -31,15 +32,13 @@ public class PvPHudOverlay {
 
     public static int getBadgeX(int screenW) {
         int offsetX = 10;
-        OmniClientConfig.HudCorner corner = OmniClientConfig.HudCorner.TOP_LEFT;
         try {
             if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudOffsetX != null) {
                 offsetX = OmniClientConfig.INSTANCE.hudOffsetX.get();
-                corner = OmniClientConfig.INSTANCE.hudCorner.get();
             }
         } catch (Exception ignored) {}
 
-        switch (corner) {
+        switch (OmniClientConfig.currentCorner) {
             case TOP_RIGHT:
             case BOTTOM_RIGHT:
                 return screenW - PvPCursorScreen.BTN_W - offsetX;
@@ -52,15 +51,13 @@ public class PvPHudOverlay {
 
     public static int getBadgeY(int screenH) {
         int offsetY = 10;
-        OmniClientConfig.HudCorner corner = OmniClientConfig.HudCorner.TOP_LEFT;
         try {
             if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudOffsetY != null) {
                 offsetY = OmniClientConfig.INSTANCE.hudOffsetY.get();
-                corner = OmniClientConfig.INSTANCE.hudCorner.get();
             }
         } catch (Exception ignored) {}
 
-        switch (corner) {
+        switch (OmniClientConfig.currentCorner) {
             case BOTTOM_LEFT:
             case BOTTOM_RIGHT:
                 return screenH - PvPCursorScreen.BTN_H - offsetY;
