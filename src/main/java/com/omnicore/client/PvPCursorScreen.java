@@ -132,6 +132,7 @@ public class PvPCursorScreen extends Screen {
     }
 
     public static String formatCornerName(OmniClientConfig.HudCorner corner) {
+        if (corner == null) return "บนซ้าย (Top-Left)";
         switch (corner) {
             case TOP_LEFT: return "บนซ้าย (Top-Left)";
             case TOP_RIGHT: return "บนขวา (Top-Right)";

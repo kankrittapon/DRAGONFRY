@@ -14,12 +14,16 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Mod.EventBusSubscriber(modid = "omnicore", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class PvPKeyHandler {
@@ -99,10 +103,83 @@ public class PvPKeyHandler {
                 }
             }
 
-            // Ctrl: ปปลดล็อกเคอร์เซอร์เมาส์ด้วย Transparent Cursor Screen
+            // Ctrl: ปลดล็อกเคอร์เซอร์เมาส์ด้วย Transparent Cursor Screen
             if (event.getAction() == GLFW.GLFW_PRESS) {
-                if (mc.screen == null && CURSOR_KEY.matches(event.getKey(), event.getScanCode())) {
-                    mc.setScreen(new PvPCursorScreen());
+                boolean isCtrl = event.getKey() == GLFW.GLFW_KEY_LEFT_CONTROL
+                        || event.getKey() == GLFW.GLFW_KEY_RIGHT_CONTROL
+                        || CURSOR_KEY.matches(event.getKey(), event.getScanCode());
+                if (isCtrl) {
+                    if (mc.screen == null || mc.screen.getClass().getSimpleName().equals("MergeFeelCursorScreen")) {
+                        mc.setScreen(new PvPCursorScreen());
+                    }
+                }
+            }
+        }
+
+        /**
+         * Interoperability with MergeFeel:
+         * If MergeFeel's cursor screen is open, render OmniCore PvP badge on it with full hover tooltip
+         */
+        @SubscribeEvent
+        public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.screen != null && mc.screen.getClass().getSimpleName().equals("MergeFeelCursorScreen")) {
+                int screenW = mc.getWindow().getGuiScaledWidth();
+                int screenH = mc.getWindow().getGuiScaledHeight();
+                int mouseX = event.getMouseX();
+                int mouseY = event.getMouseY();
+
+                int x = PvPHudOverlay.getBadgeX(screenW);
+                int y = PvPHudOverlay.getBadgeY(screenH);
+                boolean hovered = mouseX >= x && mouseX <= x + PvPCursorScreen.BTN_W && mouseY >= y && mouseY <= y + PvPCursorScreen.BTN_H;
+
+                PvPHudOverlay.renderPvPBadge(event.getGuiGraphics(), x, y, PvPCursorScreen.BTN_W, PvPCursorScreen.BTN_H, hovered, true);
+
+                if (hovered) {
+                    List<Component> tooltipLines = new ArrayList<>();
+                    if (ClientPvPState.isPkFlagged()) {
+                        tooltipLines.add(Component.literal("§c🗡️ ติดสถานะ Free PK! (ห้ามปิดจนกว่าเวลาจะหมด)"));
+                    } else if (ClientPvPState.pvpEnabled) {
+                        tooltipLines.add(Component.literal("§e⚔️ สถานะ: §cเปิดโหมด PVP"));
+                    } else {
+                        tooltipLines.add(Component.literal("§e🛡️ สถานะ: §aโหมดสงบ PVE"));
+                    }
+                    tooltipLines.add(Component.literal("§8-----------------------------"));
+                    tooltipLines.add(Component.literal("§f• §aคลิกซ้าย: §7สลับโหมด PvP / PvE"));
+                    tooltipLines.add(Component.literal("§f• §eคลิกขวา: §7ย้ายมุม HUD (§6" + PvPCursorScreen.formatCornerName(OmniClientConfig.currentCorner) + "§7)"));
+                    tooltipLines.add(Component.literal("§f• §bAlt+H: §7ซ่อน/แสดง HUD (§b" + (OmniClientConfig.isHudHidden ? "ซ่อนอยู่" : "แสดงอยู่") + "§7)"));
+                    event.getGuiGraphics().renderComponentTooltip(mc.font, tooltipLines, mouseX, mouseY);
+                }
+            }
+        }
+
+        /**
+         * Global cursor screen click interceptor:
+         * Catches mouse clicks directly on OmniCore PvP badge on ANY open transparent cursor screen
+         * (Both PvPCursorScreen and MergeFeelCursorScreen)
+         */
+        @SubscribeEvent
+        public static void onScreenMouseClicked(ScreenEvent.MouseButtonPressed.Pre event) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.screen != null && (mc.screen instanceof PvPCursorScreen || mc.screen.getClass().getSimpleName().equals("MergeFeelCursorScreen"))) {
+                int screenW = mc.getWindow().getGuiScaledWidth();
+                int screenH = mc.getWindow().getGuiScaledHeight();
+                double mouseX = event.getMouseX();
+                double mouseY = event.getMouseY();
+                int button = event.getButton();
+
+                int x = PvPHudOverlay.getBadgeX(screenW);
+                int y = PvPHudOverlay.getBadgeY(screenH);
+
+                if (mouseX >= x && mouseX <= x + PvPCursorScreen.BTN_W && mouseY >= y && mouseY <= y + PvPCursorScreen.BTN_H) {
+                    if (button == 0) { // Left-Click: Toggle PvP
+                        mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
+                        ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
+                        event.setCanceled(true);
+                    } else if (button == 1) { // Right-Click: Cycle Corner
+                        PvPCursorScreen.cycleCorner(mc);
+                        event.setCanceled(true);
+                    }
                 }
             }
         }
@@ -167,4 +244,5 @@ public class PvPKeyHandler {
         }
     }
 }
+
 
