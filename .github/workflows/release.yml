@@ -1,0 +1,94 @@
+name: Build and Release OmniCore
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    env:
+      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+      CURSEFORGE_ID: ${{ secrets.CURSEFORGE_ID || vars.CURSEFORGE_PROJECT_ID }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Extract Mod Version
+        id: extract_version
+        run: |
+          MOD_VER=$(grep "mod_version=" gradle.properties | cut -d'=' -f2 | tr -d '\r\n')
+          echo "MOD_VERSION=$MOD_VER" >> $GITHUB_ENV
+          echo "Extracted mod version: $MOD_VER"
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build -x test
+
+      - name: Verify Build Artifacts
+        run: |
+          ls -lh build/libs/
+          JAR_FILE=$(find build/libs -name "omnicore-${{ env.MOD_VERSION }}.jar" -o -name "omnicore-*.jar" | head -n 1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "Error: Jar file not found in build/libs!"
+            exit 1
+          fi
+          echo "FOUND_JAR=$JAR_FILE" >> $GITHUB_ENV
+          echo "Found JAR: $JAR_FILE"
+
+      - name: Upload Build Artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnicore-${{ env.MOD_VERSION }}
+          path: ${{ env.FOUND_JAR }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.FOUND_JAR }}
+          name: OmniCore v${{ env.MOD_VERSION }}
+          tag_name: v${{ env.MOD_VERSION }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Publish to CurseForge
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') && env.CURSEFORGE_TOKEN != '' && env.CURSEFORGE_ID != ''
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: ${{ env.CURSEFORGE_ID }}
+          files: ${{ env.FOUND_JAR }}
+          name: OmniCore v${{ env.MOD_VERSION }} (Forge 1.20.1)
+          version: ${{ env.MOD_VERSION }}
+          version-type: beta
+          loaders: forge
+          game-versions: 1.20.1
+          java: 17
+          changelog: |
+            ### OmniCore v${{ env.MOD_VERSION }}
+            - 🎮 **Configurable PvP HUD Corner:** Choose any of the 4 screen corners (Top-Left, Top-Right, Bottom-Left, Bottom-Right) in `omnicore-client.toml` or via `/pvphud` commands.
+            - 🖱️ **Instant Right-Click Corner Cycle:** Hold `Ctrl` to open the cursor screen and right-click the PvP badge to cycle screen corners on the fly.
+            - 🎨 **Official Mod Icon & Branding:** Embedded high-resolution mod icon in JAR for CurseForge avatar and in-game mods list.
+            - ⚔️ **Universal World Boss (BossCore):** Mob-to-Boss promotion with 8-block leash engine, 30-block arena bounds, and 100% keep-inventory protection.
+            - 🛡️ **Zero Friendly Fire (PartyCore):** Integrated with FTB Teams and Vanilla Teams to prevent party damage from magic, arrows, and sweeping strikes.
+            - 🖥️ **Embedded Web Studio (ControlCore):** Built-in browser control panel for server telemetry and live settings hot-reload.
