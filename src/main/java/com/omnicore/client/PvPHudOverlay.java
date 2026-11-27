@@ -1,6 +1,7 @@
 package com.omnicore.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.omnicore.config.OmniClientConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -23,8 +24,52 @@ public class PvPHudOverlay {
         // หากผู้เล่นเปิดหน้าต่าง PvPCursorScreen อยู่ จะไม่วาดซ้ำเพื่อไม่ให้ภาพทับซ้อน
         if (mc.screen instanceof PvPCursorScreen) return;
 
-        renderPvPBadge(gfx, PvPCursorScreen.BTN_X, PvPCursorScreen.BTN_Y, PvPCursorScreen.BTN_W, PvPCursorScreen.BTN_H, false, false);
+        int x = getBadgeX(screenW);
+        int y = getBadgeY(screenH);
+        renderPvPBadge(gfx, x, y, PvPCursorScreen.BTN_W, PvPCursorScreen.BTN_H, false, false);
     };
+
+    public static int getBadgeX(int screenW) {
+        int offsetX = 10;
+        OmniClientConfig.HudCorner corner = OmniClientConfig.HudCorner.TOP_LEFT;
+        try {
+            if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudOffsetX != null) {
+                offsetX = OmniClientConfig.INSTANCE.hudOffsetX.get();
+                corner = OmniClientConfig.INSTANCE.hudCorner.get();
+            }
+        } catch (Exception ignored) {}
+
+        switch (corner) {
+            case TOP_RIGHT:
+            case BOTTOM_RIGHT:
+                return screenW - PvPCursorScreen.BTN_W - offsetX;
+            case TOP_LEFT:
+            case BOTTOM_LEFT:
+            default:
+                return offsetX;
+        }
+    }
+
+    public static int getBadgeY(int screenH) {
+        int offsetY = 10;
+        OmniClientConfig.HudCorner corner = OmniClientConfig.HudCorner.TOP_LEFT;
+        try {
+            if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudOffsetY != null) {
+                offsetY = OmniClientConfig.INSTANCE.hudOffsetY.get();
+                corner = OmniClientConfig.INSTANCE.hudCorner.get();
+            }
+        } catch (Exception ignored) {}
+
+        switch (corner) {
+            case BOTTOM_LEFT:
+            case BOTTOM_RIGHT:
+                return screenH - PvPCursorScreen.BTN_H - offsetY;
+            case TOP_LEFT:
+            case TOP_RIGHT:
+            default:
+                return offsetY;
+        }
+    }
 
     public static void renderPvPBadge(GuiGraphics gfx, int x, int y, int w, int h, boolean hovered, boolean cursorActive) {
         Minecraft mc = Minecraft.getInstance();
@@ -82,7 +127,7 @@ public class PvPHudOverlay {
         gfx.drawString(font, title, x + 29, y + 4, titleCol, true);
 
         // 6. Subtitle / Control Shortcut Hint
-        String hint = cursorActive ? "§e[CLICK TO TOGGLE]" : "§7[Ctrl] UI [Alt+C]";
+        String hint = cursorActive ? "§e[L:Toggle §7| §6R:Corner]" : "§7[Ctrl] UI [Alt+C]";
         gfx.drawString(font, hint, x + 29, y + 15, 0xFFAAAAAA, false);
 
         RenderSystem.disableBlend();

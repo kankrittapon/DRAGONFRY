@@ -5,7 +5,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 
-version = '1.2.0'
+version = '0.0.1-beta'
 group = 'com.omnicore'
 
 base {
@@ -58,7 +58,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_id              : 'omnicore',
             mod_name            : 'OmniCore: Universal RPG Engine',
             mod_license         : 'MIT',
-            mod_version         : '1.2.0',
+            mod_version         : '0.0.1-beta',
             mod_authors         : 'OmniCore Team',
             mod_description     : 'Universal RPG & Server Control Engine (Boss Core, PvP Core, Party Friendly Fire & Remote Control)'
     ]

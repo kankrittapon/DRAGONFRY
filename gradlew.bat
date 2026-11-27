@@ -24,6 +24,9 @@
 @rem Set local scope for the variables with windows NT shell
 if "%OS%"=="Windows_NT" setlocal
 
+set "JAVA_HOME=E:\Minecraft-Server\java\jdk-17.0.21.1+2"
+set "PATH=%JAVA_HOME%\bin;%PATH%"
+
 set DIRNAME=%~dp0
 if "%DIRNAME%"=="" set DIRNAME=.
 @rem This is normally unused

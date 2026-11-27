@@ -1,5 +1,6 @@
 package com.omnicore.client;
 
+import com.omnicore.config.OmniClientConfig;
 import com.omnicore.network.ModNetwork;
 import com.omnicore.network.TogglePvPPacket;
 import net.minecraft.client.Minecraft;
@@ -10,18 +11,28 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * หน้าจอ Transparent Screen ปลดล็อก Cursor เมาส์เมื่อกดปุ่ม Ctrl
  * ให้ผู้เล่นสามารถใช้เมาส์คลิกปุ่มสลับโหมด PvP บน HUD ได้อย่างอิสระสไตล์เกม MMORPG
+ * รองรับการคลิกขวาเพื่อย้ายมุมแสดงผล HUD (Top-Left / Top-Right / Bottom-Left / Bottom-Right)
  */
 public class PvPCursorScreen extends Screen {
-    public static final int BTN_X = 10;
-    public static final int BTN_Y = 10;
     public static final int BTN_W = 124;
     public static final int BTN_H = 28;
 
     public PvPCursorScreen() {
         super(Component.literal("OmniCore PvP Control"));
+    }
+
+    public int getX() {
+        return PvPHudOverlay.getBadgeX(this.width);
+    }
+
+    public int getY() {
+        return PvPHudOverlay.getBadgeY(this.height);
     }
 
     @Override
@@ -36,34 +47,110 @@ public class PvPCursorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
+        int x = getX();
+        int y = getY();
         boolean hovered = isMouseOverButton(mouseX, mouseY);
-        PvPHudOverlay.renderPvPBadge(gfx, BTN_X, BTN_Y, BTN_W, BTN_H, hovered, true);
+        PvPHudOverlay.renderPvPBadge(gfx, x, y, BTN_W, BTN_H, hovered, true);
 
         if (hovered) {
-            Component tooltip = ClientPvPState.isPkFlagged()
-                    ? Component.literal("§c🗡️ ติดสถานะ Free PK! (ห้ามปิดจนกว่าเวลาจะหมด)")
-                    : (ClientPvPState.pvpEnabled
-                    ? Component.literal("§e⚔️ คลิกเพื่อปิดโหมด PvP (§aเข้าสู่โหมดสงบ PVE§e)")
-                    : Component.literal("§c⚔️ คลิกเพื่อเปิดโหมด PvP (§cเปิดการต่อสู้ PVP§e)"));
-            gfx.renderTooltip(this.font, tooltip, mouseX, mouseY);
+            List<Component> tooltipLines = new ArrayList<>();
+            if (ClientPvPState.isPkFlagged()) {
+                tooltipLines.add(Component.literal("§c🗡️ ติดสถานะ Free PK! (ห้ามปิดจนกว่าเวลาจะหมด)"));
+            } else if (ClientPvPState.pvpEnabled) {
+                tooltipLines.add(Component.literal("§e⚔️ สถานะ: §cเปิดโหมด PVP"));
+            } else {
+                tooltipLines.add(Component.literal("§e🛡️ สถานะ: §aโหมดสงบ PVE"));
+            }
+            tooltipLines.add(Component.literal("§8-----------------------------"));
+            tooltipLines.add(Component.literal("§f• §aคลิกซ้าย: §7สลับโหมด PvP / PvE"));
+
+            OmniClientConfig.HudCorner currentCorner = OmniClientConfig.HudCorner.TOP_LEFT;
+            try {
+                if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
+                    currentCorner = OmniClientConfig.INSTANCE.hudCorner.get();
+                }
+            } catch (Exception ignored) {}
+
+            tooltipLines.add(Component.literal("§f• §eคลิกขวา: §7ย้ายมุม HUD (§6" + formatCornerName(currentCorner) + "§7)"));
+            gfx.renderComponentTooltip(this.font, tooltipLines, mouseX, mouseY);
         }
 
         super.render(gfx, mouseX, mouseY, partialTick);
     }
 
     private boolean isMouseOverButton(double mouseX, double mouseY) {
-        return mouseX >= BTN_X && mouseX <= BTN_X + BTN_W && mouseY >= BTN_Y && mouseY <= BTN_Y + BTN_H;
+        int x = getX();
+        int y = getY();
+        return mouseX >= x && mouseX <= x + BTN_W && mouseY >= y && mouseY <= y + BTN_H;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && isMouseOverButton(mouseX, mouseY)) {
+        if (isMouseOverButton(mouseX, mouseY)) {
             Minecraft mc = Minecraft.getInstance();
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
-            ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
-            return true;
+            if (button == 0) { // Left-Click: Toggle PvP
+                mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
+                ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
+                return true;
+            } else if (button == 1) { // Right-Click: Cycle Corner Position
+                cycleCorner(mc);
+                return true;
+            }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    public static void cycleCorner(Minecraft mc) {
+        OmniClientConfig.HudCorner current = OmniClientConfig.HudCorner.TOP_LEFT;
+        try {
+            if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
+                current = OmniClientConfig.INSTANCE.hudCorner.get();
+            }
+        } catch (Exception ignored) {}
+
+        OmniClientConfig.HudCorner next;
+        switch (current) {
+            case TOP_LEFT:
+                next = OmniClientConfig.HudCorner.TOP_RIGHT;
+                break;
+            case TOP_RIGHT:
+                next = OmniClientConfig.HudCorner.BOTTOM_RIGHT;
+                break;
+            case BOTTOM_RIGHT:
+                next = OmniClientConfig.HudCorner.BOTTOM_LEFT;
+                break;
+            case BOTTOM_LEFT:
+            default:
+                next = OmniClientConfig.HudCorner.TOP_LEFT;
+                break;
+        }
+
+        try {
+            if (OmniClientConfig.INSTANCE != null && OmniClientConfig.INSTANCE.hudCorner != null) {
+                OmniClientConfig.INSTANCE.hudCorner.set(next);
+                OmniClientConfig.SPEC.save();
+            }
+        } catch (Exception ignored) {}
+
+        if (mc != null) {
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.25f));
+            if (mc.player != null) {
+                mc.player.displayClientMessage(
+                    Component.literal("§6[OmniCore] §eย้ายตำแหน่ง PvP HUD ไปที่: §a" + formatCornerName(next)),
+                    true // action bar
+                );
+            }
+        }
+    }
+
+    public static String formatCornerName(OmniClientConfig.HudCorner corner) {
+        switch (corner) {
+            case TOP_LEFT: return "บนซ้าย (Top-Left)";
+            case TOP_RIGHT: return "บนขวา (Top-Right)";
+            case BOTTOM_RIGHT: return "ล่างขวา (Bottom-Right)";
+            case BOTTOM_LEFT: return "ล่างซ้าย (Bottom-Left)";
+            default: return corner.name();
+        }
     }
 
     @Override

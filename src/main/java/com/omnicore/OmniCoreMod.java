@@ -52,6 +52,7 @@ public class OmniCoreMod {
         );
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, OmniConfig.SPEC, "omnicore-common.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, com.omnicore.config.OmniClientConfig.SPEC, "omnicore-client.toml");
         ModNetwork.register();
         com.omnicore.server.CuriosBridge.init();
         MinecraftForge.EVENT_BUS.register(this);

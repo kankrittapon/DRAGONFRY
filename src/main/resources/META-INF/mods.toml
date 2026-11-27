@@ -4,8 +4,9 @@ license="MIT"
 
 [[mods]]
 modId="omnicore"
-version="1.2.0"
+version="0.0.1-beta"
 displayName="OmniCore: Universal RPG Engine"
+logoFile="icon.png"
 description='''
 Universal Minecraft Forge 1.20.1 RPG Framework (Boss Core, PvP Core, Party Friendly Fire & Server Remote Control)
 - ⚔️ BossCore: Universal World Boss & Mob-to-Boss Promoter, Custom BossBar with Damage Lag Trail, Keep Inventory & In-Arena Respawn
