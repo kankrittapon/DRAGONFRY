@@ -3,6 +3,7 @@ package com.omnicore.rpg.handler;
 import com.omnicore.enchantment.ModEnchantments;
 import com.omnicore.server.PvPManager;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -122,6 +123,10 @@ public class MultislashHandler {
                             6, 0.2, 0.2, 0.2, 0.1);
                 }
             }
+        }
+
+        if (!hitEntityIds.isEmpty()) {
+            player.displayClientMessage(Component.literal(String.format("§b§l⚔️ MULTISLASH! §f(%d Hits)", hitEntityIds.size())), true);
         }
 
         // Weapon durability penalty (1 durability used)

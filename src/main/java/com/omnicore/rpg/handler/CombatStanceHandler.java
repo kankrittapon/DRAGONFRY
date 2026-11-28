@@ -2,6 +2,7 @@ package com.omnicore.rpg.handler;
 
 import com.omnicore.enchantment.ModEnchantments;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -35,6 +36,8 @@ public class CombatStanceHandler {
             float healAmount = event.getAmount() * lifestealRatio;
             player.heal(healAmount);
 
+            player.displayClientMessage(Component.literal(String.format("§4§l🩸 BERSERK! §a+%.1f HP §7(Lifesteal)", healAmount)), true);
+
             if (player.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.HEART,
                         player.getX(), player.getY() + 1.2, player.getZ(),
@@ -46,6 +49,8 @@ public class CombatStanceHandler {
         if (player.hasEffect(MobEffects.POISON) || player.getPersistentData().getBoolean("omnicore_toxic_coated")) {
             target.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, 1));
             target.getPersistentData().putLong("omnicore_heal_cut_until", System.currentTimeMillis() + 5000L);
+
+            player.displayClientMessage(Component.literal("§2§l☠️ TOXIC WITHER! §7(Decay & Heal Cut 50%)"), true);
 
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.ITEM_SLIME,
@@ -75,6 +80,8 @@ public class CombatStanceHandler {
                 float reflectDmg = event.getAmount() * reflectRatio;
 
                 attacker.hurt(player.damageSources().thorns(player), reflectDmg);
+
+                player.displayClientMessage(Component.literal(String.format("§9§l🛡️ BASTION REFLECT! §b%.1f DMG", reflectDmg)), true);
 
                 if (player.level() instanceof ServerLevel sl) {
                     sl.sendParticles(ParticleTypes.ENCHANTED_HIT,

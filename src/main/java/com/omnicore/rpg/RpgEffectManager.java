@@ -4,6 +4,7 @@ import com.omnicore.rpg.handler.*;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 /**
@@ -22,6 +23,12 @@ public class RpgEffectManager {
     }
 
     @SubscribeEvent
+    public void onLivingVisibility(LivingEvent.LivingVisibilityEvent event) {
+        if (!isEnabled()) return;
+        StealthHandler.onLivingVisibility(event);
+    }
+
+    @SubscribeEvent
     public void onLivingChangeTarget(LivingChangeTargetEvent event) {
         if (!isEnabled()) return;
         StealthHandler.onLivingChangeTarget(event);
@@ -37,8 +44,15 @@ public class RpgEffectManager {
     }
 
     @SubscribeEvent
+    public void onCriticalHit(CriticalHitEvent event) {
+        if (!isEnabled()) return;
+        StealthHandler.onCriticalHit(event);
+    }
+
+    @SubscribeEvent
     public void onAttackEntity(AttackEntityEvent event) {
         if (!isEnabled()) return;
+        StealthHandler.onPlayerPreAttack(event);
         MultislashHandler.onPlayerAttack(event);
     }
 

@@ -2,6 +2,7 @@ package com.omnicore.rpg.handler;
 
 import com.omnicore.enchantment.ModEnchantments;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -81,6 +82,7 @@ public class SpecialCombatHandler {
                 if (totalDrained > 0) {
                     player.heal(Math.min(6.0f, totalDrained));
                     sl.sendParticles(ParticleTypes.WITCH, player.getX(), player.getY() + 1.0, player.getZ(), 6, 0.2, 0.2, 0.2, 0.05);
+                    player.displayClientMessage(Component.literal(String.format("§5§l🔮 SOUL DRAIN! §a+%.1f HP §7(Drained %d)", Math.min(6.0f, totalDrained), targets.size())), true);
                 }
             }
         }
@@ -147,6 +149,8 @@ public class SpecialCombatHandler {
                     sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, m.getX(), m.getY() + 0.8, m.getZ(), 8, 0.3, 0.3, 0.3, 0.1);
                     chained++;
                 }
+
+                player.displayClientMessage(Component.literal(String.format("§e§l⚡ CHAIN LIGHTNING! §f(%d Targets)", chained + 1)), true);
             }
         }
     }
