@@ -43,6 +43,9 @@ public class OmniCoreMod {
     public static volatile MinecraftServer SERVER;
 
     public OmniCoreMod() {
+        net.minecraftforge.eventbus.api.IEventBus modEventBus = net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus();
+        com.omnicore.enchantment.ModEnchantments.register(modEventBus);
+
         // 100% Server-side support: Clients do NOT need this mod to connect!
         ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class,
                 () -> new IExtensionPoint.DisplayTest(
@@ -59,6 +62,7 @@ public class OmniCoreMod {
         MinecraftForge.EVENT_BUS.register(UniversalBossManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(AnnouncementTriggerHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(com.omnicore.server.PvPManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(com.omnicore.rpg.RpgEffectManager.INSTANCE);
     }
 
     @SubscribeEvent

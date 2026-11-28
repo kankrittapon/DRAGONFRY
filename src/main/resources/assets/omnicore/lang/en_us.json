@@ -2,5 +2,22 @@
   "key.categories.omnicore": "OmniCore RPG Engine",
   "key.omnicore.toggle_pvp": "Toggle PvP Mode (Alt + C)",
   "key.omnicore.cursor_screen": "Open PvP Cursor / UI (Hold Ctrl)",
-  "key.omnicore.toggle_hud": "Toggle PvP HUD (Alt + H)"
+  "key.omnicore.toggle_hud": "Toggle PvP HUD (Alt + H)",
+
+  "enchantment.omnicore.multislash": "Multislash",
+  "enchantment.omnicore.multislash.desc": "Releases fan-spread piercing slash waves (2-5 waves) on swing, hitting multiple targets in a wide cone.",
+  "enchantment.omnicore.shadow_edge": "Shadow Edge",
+  "enchantment.omnicore.shadow_edge.desc": "Increases Backstab damage in Shadow Veil by +25% per level and reduces Exposed duration.",
+  "enchantment.omnicore.bastion_spikes": "Bastion Spikes",
+  "enchantment.omnicore.bastion_spikes.desc": "Increases Titan Bastion damage reflection by +10% per level and reduces hunger drain.",
+  "enchantment.omnicore.aerial_grace": "Aerial Grace",
+  "enchantment.omnicore.aerial_grace.desc": "Halves mid-air knockback vulnerability in Zephyr Feather and extends Double Jump distance.",
+  "enchantment.omnicore.pyretic_core": "Pyretic Core",
+  "enchantment.omnicore.pyretic_core.desc": "Boosts Phoenix Soul healing in lava and reduces water steam damage by 30% per level.",
+  "enchantment.omnicore.eagles_eye": "Eagle's Eye",
+  "enchantment.omnicore.eagles_eye.desc": "Reduces Marksman Focus tunnel vision and extends bullet-time slow motion duration.",
+  "enchantment.omnicore.tesla_coil": "Tesla Coil",
+  "enchantment.omnicore.tesla_coil.desc": "Doubles Static Conduit charge speed and adds +1 chain lightning target per level.",
+  "enchantment.omnicore.bloodletter_pact": "Bloodletter's Pact",
+  "enchantment.omnicore.bloodletter_pact.desc": "Grants +3% lifesteal per level in Berserk mode regardless of health."
 }

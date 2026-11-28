@@ -2,5 +2,22 @@
   "key.categories.omnicore": "OmniCore ระบบเซิร์ฟเวอร์ MMORPG",
   "key.omnicore.toggle_pvp": "สลับโหมดต่อสู้ PvP (Alt + C)",
   "key.omnicore.cursor_screen": "ปลดล็อกเคอร์เซอร์เมาส์คลิก UI (กด Ctrl ค้าง)",
-  "key.omnicore.toggle_hud": "ซ่อน/แสดง PvP HUD (Alt + H)"
+  "key.omnicore.toggle_hud": "ซ่อน/แสดง PvP HUD (Alt + H)",
+
+  "enchantment.omnicore.multislash": "มัลติสแลช (Multislash)",
+  "enchantment.omnicore.multislash.desc": "ปล่อยคลื่นคมดาบรูปพัดทะลุเป้าหมาย 2-5 แฉก โจมตีศัตรูในวงกว้างสไตล์ Multishot",
+  "enchantment.omnicore.shadow_edge": "คมดาบเงาพราง (Shadow Edge)",
+  "enchantment.omnicore.shadow_edge.desc": "เพิ่มความเสียหาย Backstab ตอนล่องหน Shadow Veil ระดับละ +25% และลดเวลาติดสถานะเปิดเผยตัว",
+  "enchantment.omnicore.bastion_spikes": "ปราการหนามเหล็ก (Bastion Spikes)",
+  "enchantment.omnicore.bastion_spikes.desc": "เพิ่มดาเมจสะท้อนของ Titan Bastion ระดับละ +10% และลดการเสียหลอดอาหาร",
+  "enchantment.omnicore.aerial_grace": "ขนนกเหินเวหา (Aerial Grace)",
+  "enchantment.omnicore.aerial_grace.desc": "ลดแรงกระเด็นกลางอากาศของ Zephyr Feather ลง 50% และพุ่งตัว Double Jump ได้ไกลขึ้น",
+  "enchantment.omnicore.pyretic_core": "แกนกลางอัคคี (Pyretic Core)",
+  "enchantment.omnicore.pyretic_core.desc": "เพิ่มอัตราการฮีลในลาวาของ Phoenix Soul และลดดาเมจจากการแพ้น้ำลง 30% ต่อระดับ",
+  "enchantment.omnicore.eagles_eye": "สายตาพญาอินทรี (Eagle's Eye)",
+  "enchantment.omnicore.eagles_eye.desc": "ลดอาการขอบจอมืดของ Marksman Focus และเพิ่มเวลาสโลว์โมชั่น Bullet-time",
+  "enchantment.omnicore.tesla_coil": "ขดลวดนำประจุ (Tesla Coil)",
+  "enchantment.omnicore.tesla_coil.desc": "ชาร์จประจุ Static Conduit เร็วขึ้น 2 เท่า และเพิ่มเป้าหมาย Chain Lightning",
+  "enchantment.omnicore.bloodletter_pact": "พันธสัญญาหลั่งโลหิต (Bloodletter's Pact)",
+  "enchantment.omnicore.bloodletter_pact.desc": "เพิ่มอัตราการดูดเลือด Lifesteal ในโหมด Berserk ระดับละ +3% แม้เลือดจะไม่ต่ำ"
 }

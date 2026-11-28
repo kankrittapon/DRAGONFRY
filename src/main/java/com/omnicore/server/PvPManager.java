@@ -69,6 +69,19 @@ public class PvPManager {
         return data != null && data.pvpEnabled;
     }
 
+    public boolean canAttack(Player attacker, Player victim) {
+        if (attacker == null || victim == null) return false;
+        if (attacker.getUUID().equals(victim.getUUID())) return false;
+        if (areInSameParty(attacker, victim)) return false;
+
+        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
+        PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        if (victimData.isPkFlagged()) return true;
+        if (!victimData.pvpEnabled) return false;
+        return attackerData.pvpEnabled;
+    }
+
     public boolean isPkFlagged(UUID uuid) {
         PlayerPvPData data = pvpData.get(uuid);
         return data != null && data.isPkFlagged();
