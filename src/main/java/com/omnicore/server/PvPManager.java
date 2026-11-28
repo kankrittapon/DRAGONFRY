@@ -72,10 +72,14 @@ public class PvPManager {
     public boolean canAttack(Player attacker, Player victim) {
         if (attacker == null || victim == null) return false;
         if (attacker.getUUID().equals(victim.getUUID())) return false;
-        if (areInSameParty(attacker, victim)) return false;
 
         PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
         PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        // หากอยู่ในปาร์ตี้เดียวกัน: อนุญาตให้ประลองฝีมือได้เมื่อเปิดโหมด PvP ทั้งคู่
+        if (areInSameParty(attacker, victim)) {
+            return attackerData.pvpEnabled && victimData.pvpEnabled;
+        }
 
         if (victimData.isPkFlagged()) return true;
         if (!victimData.pvpEnabled) return false;
@@ -388,14 +392,23 @@ public class PvPManager {
 
         if (victim == null || attacker.getUUID().equals(victim.getUUID())) return;
 
-        // 1. สมาชิกปาร์ตี้เดียวกัน -> ตีกันไม่ได้เด็ดขาด 100% (รวมถึงสัตว์เลี้ยง/ซัมมอนของเพื่อนในปาร์ตี้)
-        if (areInSameParty(attacker, victim)) {
-            event.setCanceled(true);
-            return;
-        }
-
         PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
         PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        // 1. สมาชิกปาร์ตี้เดียวกัน
+        if (areInSameParty(attacker, victim)) {
+            // หากเปิดโหมด PvP ทั้งสองฝ่าย -> อนุญาตให้ประลองกันได้ (Party Duel)
+            if (attackerData.pvpEnabled && victimData.pvpEnabled) {
+                return;
+            }
+            event.setCanceled(true);
+            if (!attackerData.pvpEnabled) {
+                attacker.displayClientMessage(Component.literal("§e🛡️ [Party Protection] ไม่สามารถโจมตีเพื่อนในปาร์ตี้ได้! (คุณปิด PvP อยู่)"), true);
+            } else {
+                attacker.displayClientMessage(Component.literal("§e🛡️ [Party Protection] เพื่อนในปาร์ตี้อยู่ในโหมดสงบ! (ต้องเปิด PvP ทั้งสองฝ่ายเพื่อประลอง)"), true);
+            }
+            return;
+        }
 
         // 2. หากเป้าหมายเป็น Free PK (🗡️) -> อนุญาตให้ทุกคนรุมตีได้
         if (victimData.isPkFlagged()) {
@@ -437,15 +450,18 @@ public class PvPManager {
         ServerPlayer attacker = resolveAttackingPlayer(event.getSource());
         if (attacker == null || attacker.getUUID().equals(victim.getUUID())) return;
 
-        // 1. สมาชิกปาร์ตี้เดียวกัน (FTB Teams & Vanilla) -> ยกเลิก 100%
+        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
+        PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        // 1. สมาชิกปาร์ตี้เดียวกัน (FTB Teams & Vanilla) -> อนุญาตถ้าเปิด PvP ทั้งคู่
         if (areInSameParty(attacker, victim)) {
+            if (attackerData.pvpEnabled && victimData.pvpEnabled) {
+                return;
+            }
             event.setCanceled(true);
             dropMobAggro(event.getSource(), victim);
             return;
         }
-
-        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
-        PlayerPvPData victimData = getOrCreate(victim.getUUID());
 
         // 2. Free PK (🗡️) อนุญาตให้โจมตีได้
         if (victimData.isPkFlagged()) return;
@@ -484,15 +500,20 @@ public class PvPManager {
         ServerPlayer attacker = resolveAttackingPlayer(event.getSource());
         if (attacker == null || attacker.getUUID().equals(victim.getUUID())) return;
 
-        // 1. สมาชิกปาร์ตี้เดียวกัน -> ตีกันไม่ได้เด็ดขาด (Cancel Damage 100%)
+        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
+        PlayerPvPData victimData = getOrCreate(victim.getUUID());
+
+        // 1. สมาชิกปาร์ตี้เดียวกัน -> อนุญาตให้ประลองได้ถ้าเปิด PvP ทั้งคู่
         if (areInSameParty(attacker, victim)) {
+            if (attackerData.pvpEnabled && victimData.pvpEnabled) {
+                attackerData.pkExpireAtMillis = System.currentTimeMillis() + 45_000L;
+                syncPlayerName(attacker);
+                return;
+            }
             event.setCanceled(true);
             dropMobAggro(event.getSource(), victim);
             return;
         }
-
-        PlayerPvPData attackerData = getOrCreate(attacker.getUUID());
-        PlayerPvPData victimData = getOrCreate(victim.getUUID());
 
         // 2. กรณีเป้าหมายติดสถานะ Free PK (สัญลักษณ์ดาบ 🗡️):
         // ทุกคนในเซิร์ฟเวอร์สามารถรุมโจมตีเป้าหมายนี้ได้ฟรีโดยไม่ผิดกฎ!

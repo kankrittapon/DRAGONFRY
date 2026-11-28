@@ -88,21 +88,6 @@ public class PvPKeyHandler {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null) return;
 
-            // Alt+C: สลับโหมด PvP ทันที
-            if (mc.screen == null) {
-                while (TOGGLE_PVP_KEY.consumeClick()) {
-                    ModNetwork.CHANNEL.sendToServer(new TogglePvPPacket());
-                }
-                while (TOGGLE_HUD_KEY.consumeClick()) {
-                    OmniClientConfig.isHudHidden = !OmniClientConfig.isHudHidden;
-                    mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
-                    mc.player.displayClientMessage(
-                        Component.literal("§6[OmniCore] §ePvP HUD: " + (OmniClientConfig.isHudHidden ? "§c[ซ่อน / Hidden]" : "§a[แสดง / Visible]")),
-                        true
-                    );
-                }
-            }
-
             // Ctrl: ปลดล็อกเคอร์เซอร์เมาส์ด้วย Transparent Cursor Screen
             if (event.getAction() == GLFW.GLFW_PRESS) {
                 boolean isCtrl = event.getKey() == GLFW.GLFW_KEY_LEFT_CONTROL

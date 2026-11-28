@@ -255,7 +255,22 @@ public class StealthHandler {
     public static void onPlayerHurt(LivingDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
 
-        // โดนโจมตี ➔ เข้าสู่สถานะ In-Combat
+        net.minecraft.world.damagesource.DamageSource src = event.getSource();
+
+        // ตรวจสอบดาเมจจากการต่อสู้: หากเป็น Fall Damage หรือสิ่งแวดล้อมทั่วไป จะไม่ทำให้หลุด Stealth
+        boolean isCombatDamage = src.getEntity() instanceof LivingEntity || src.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE);
+        boolean isEnvironmental = src.is(net.minecraft.tags.DamageTypeTags.IS_FALL)
+                || src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)
+                || src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING)
+                || src.is(net.minecraft.world.damagesource.DamageTypes.STARVE)
+                || src.is(net.minecraft.world.damagesource.DamageTypes.SWEET_BERRY_BUSH)
+                || src.is(net.minecraft.world.damagesource.DamageTypes.CACTUS);
+
+        if (!isCombatDamage && isEnvironmental) {
+            return; // ไม่หลุด Stealth เมื่อตกจากที่สูง
+        }
+
+        // โดนโจมตีจากการต่อสู้จริง ➔ เข้าสู่สถานะ In-Combat
         setInCombat(player, 4000L);
 
         // หากติดสถานะ Exposed โดนดาเมจแรงขึ้น 15% พร้อมเตือนบน Action Bar
